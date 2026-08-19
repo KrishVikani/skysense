@@ -1,0 +1,708 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* SKYSENSE renders its deep, atmospheric identity in every theme mode. The
+     light palette historically washed out the atmospheric layers (pale page,
+     faint subtitles), so the base tokens resolve to the dark premium palette
+     regardless of the theme class applied by ThemeProvider. The `.dark` block
+     below stays in sync and remains the canonical dark surface set. */
+  :root {
+    --color-background: #0a0f1a;
+    --color-foreground: #f1f5f9;
+    --color-card: #111827;
+    --color-card-hover: #1f2937;
+    --color-border: #1e293b;
+    --color-border-hover: #334155;
+    --color-primary: #f1f5f9;
+    --color-secondary: #cbd5e1;
+    --color-muted: #64748b;
+    --color-muted-foreground: #94a3b8;
+    --color-success: #10b981;
+    --color-success-bg: #064e3b;
+    --color-warning: #f59e0b;
+    --color-warning-bg: #78350f;
+    --color-danger: #ef4444;
+    --color-danger-bg: #7f1d1d;
+    --color-info: #38bdf8;
+    --color-info-bg: #0c4a6e;
+    --color-accent: #14b8a6;
+    --color-accent-hover: #0d9488;
+    --color-accent-bg: #134e4a;
+    --color-accent-foreground: #ffffff;
+    --color-accent-rgb: 20 184 166;
+    --color-card-rgb: 17 24 39;
+    --color-border-rgb: 30 41 59;
+    --color-muted-rgb: 100 116 139;
+    --color-danger-rgb: 239 68 68;
+    --color-danger-bg-rgb: 127 29 29;
+    --color-sun: #fbbf24;
+    --color-sun-bg: #78350f;
+    --color-sky: #38bdf8;
+    --color-sky-bg: #0c4a6e;
+    --color-earth: #a3e635;
+    --color-earth-bg: #365314;
+    --color-overlay: rgba(0, 0, 0, 0.7);
+    --color-focus: #14b8a6;
+
+    /* Motion tokens */
+    --duration-fast: 150ms;
+    --duration-normal: 220ms;
+    --duration-slow: 350ms;
+    --duration-enter: 450ms;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .dark {
+    --color-background: #0a0f1a;
+    --color-foreground: #f1f5f9;
+    --color-card: #111827;
+    --color-card-hover: #1f2937;
+    --color-border: #1e293b;
+    --color-border-hover: #334155;
+    --color-primary: #f1f5f9;
+    --color-secondary: #cbd5e1;
+    --color-muted: #64748b;
+    --color-muted-foreground: #94a3b8;
+    --color-success: #10b981;
+    --color-success-bg: #064e3b;
+    --color-warning: #f59e0b;
+    --color-warning-bg: #78350f;
+    --color-danger: #ef4444;
+    --color-danger-bg: #7f1d1d;
+    --color-info: #38bdf8;
+    --color-info-bg: #0c4a6e;
+    --color-accent: #14b8a6;
+    --color-accent-hover: #0d9488;
+    --color-accent-bg: #134e4a;
+    --color-accent-foreground: #ffffff;
+    --color-accent-rgb: 20 184 166;
+    --color-card-rgb: 17 24 39;
+    --color-border-rgb: 30 41 59;
+    --color-muted-rgb: 100 116 139;
+    --color-danger-rgb: 239 68 68;
+    --color-danger-bg-rgb: 127 29 29;
+    --color-sun: #fbbf24;
+    --color-sun-bg: #78350f;
+    --color-sky: #38bdf8;
+    --color-sky-bg: #0c4a6e;
+    --color-earth: #a3e635;
+    --color-earth-bg: #365314;
+    --color-overlay: rgba(0, 0, 0, 0.7);
+    --color-focus: #14b8a6;
+
+    --duration-fast: 150ms;
+    --duration-normal: 220ms;
+    --duration-slow: 350ms;
+    --duration-enter: 450ms;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased font-body;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    background-image:
+      radial-gradient(60rem 42rem at 10% -12%, color-mix(in srgb, var(--color-accent) 7%, transparent), transparent 60%),
+      radial-gradient(48rem 38rem at 112% 6%, color-mix(in srgb, var(--color-sky) 7%, transparent), transparent 62%),
+      radial-gradient(40rem 32rem at 90% 108%, color-mix(in srgb, var(--color-accent) 5%, transparent), transparent 60%);
+  }
+
+  ::selection {
+    @apply bg-accent/30 text-accent;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply bg-card/80 backdrop-blur-xl border border-border/50;
+  }
+
+  .glass-strong {
+    @apply bg-card/90 backdrop-blur-2xl border border-border/30;
+  }
+
+  .card-premium {
+    @apply bg-card border border-border rounded-2xl transition-all duration-300 ease-out hover:border-border-hover;
+  }
+
+  .card-premium:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 34px -16px rgba(13, 148, 136, 0.16), 0 6px 20px -10px rgba(2, 6, 23, 0.1);
+  }
+
+  .card-elevated {
+    @apply bg-card border border-border rounded-2xl shadow-xl;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm
+           bg-accent text-white hover:bg-accent-hover active:scale-[0.98]
+           transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-primary:not(:disabled):hover {
+    box-shadow: 0 10px 26px -10px rgba(13, 148, 136, 0.55);
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm
+           bg-card border border-border text-foreground hover:bg-card-hover hover:border-border-hover active:scale-[0.98]
+           transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium text-sm
+           text-muted-foreground hover:text-foreground hover:bg-muted/10 active:scale-[0.98]
+           transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-icon {
+    @apply inline-flex items-center justify-center p-2 rounded-xl
+           text-muted-foreground hover:text-foreground hover:bg-muted/10 active:scale-[0.95]
+           transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .input-premium {
+    @apply w-full px-4 py-3 rounded-xl bg-card border border-border text-foreground placeholder:text-muted-foreground caret-accent
+           transition-all duration-200 ease-out
+           focus:outline-none focus:ring-2 focus:ring-accent/70 focus:border-transparent
+           focus:shadow-[0_0_0_4px_rgba(13,148,136,0.12)]
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .input-error {
+    @apply border-danger/70 focus:border-danger focus:ring-danger/50;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors duration-200;
+  }
+
+  .badge-success {
+    @apply badge bg-success-bg text-success;
+  }
+
+  .badge-warning {
+    @apply badge bg-warning-bg text-warning;
+  }
+
+  .badge-danger {
+    @apply badge bg-danger-bg text-danger;
+  }
+
+  .badge-info {
+    @apply badge bg-info-bg text-info;
+  }
+
+  .badge-accent {
+    @apply badge bg-accent-bg text-accent;
+  }
+
+  .section-title {
+    @apply text-xl font-semibold text-foreground tracking-tight;
+  }
+
+  .section-subtitle {
+    @apply text-[13px] leading-relaxed text-secondary;
+  }
+
+  .metric-value {
+    @apply text-3xl font-bold text-foreground tracking-tight;
+  }
+
+  .metric-label {
+    @apply text-xs uppercase tracking-wider text-muted-foreground;
+  }
+
+  .spinner {
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 9999px;
+    animation: spinner 0.7s linear infinite;
+  }
+
+  .animate-in {
+    animation: animateIn 0.4s ease-out forwards;
+  }
+
+  .animate-in-delay-1 { animation-delay: 0.05s; }
+  .animate-in-delay-2 { animation-delay: 0.1s; }
+  .animate-in-delay-3 { animation-delay: 0.15s; }
+  .animate-in-delay-4 { animation-delay: 0.2s; }
+  .animate-in-delay-5 { animation-delay: 0.25s; }
+  .animate-in-delay-6 { animation-delay: 0.3s; }
+
+  @keyframes animateIn {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes pulse-ring {
+    0% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.1); opacity: 0.2; }
+    100% { transform: scale(1); opacity: 0.5; }
+  }
+
+  .pulse-ring {
+    animation: pulse-ring 2s ease-in-out infinite;
+  }
+
+  /* ---- Environmental atmosphere ---- */
+  .atmosphere-grid {
+    background-image:
+      linear-gradient(to right, rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+    background-size: 44px 44px;
+    -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 78%);
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 78%);
+  }
+
+  .atmosphere-blob {
+    @apply absolute rounded-full blur-[100px] will-change-transform pointer-events-none;
+  }
+
+  .wave-bar {
+    transform-origin: bottom;
+  }
+
+  @keyframes atmosphere-drift {
+    0% { transform: translate3d(0, 0, 0) scale(1); }
+    100% { transform: translate3d(46px, -34px, 0) scale(1.08); }
+  }
+
+  @keyframes bar-wave {
+    0%, 100% { transform: scaleY(0.35); }
+    50% { transform: scaleY(1); }
+  }
+
+  @keyframes spinner {
+    to { transform: rotate(360deg); }
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .atmosphere-drift {
+    animation: atmosphere-drift 22s ease-in-out infinite alternate;
+  }
+
+  .atmosphere-drift-slow {
+    animation: atmosphere-drift 30s ease-in-out infinite alternate-reverse;
+  }
+
+  .wave-bar {
+    animation: bar-wave 1.8s ease-in-out infinite;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-accent to-sky bg-clip-text text-transparent;
+  }
+
+  .gradient-border {
+    position: relative;
+    background: linear-gradient(var(--color-card), var(--color-card)) padding-box,
+                linear-gradient(135deg, var(--color-accent), var(--color-sky)) border-box;
+    border: 1px solid transparent;
+  }
+
+  /* Fixed ambient backdrop for the dashboard. Sits behind app content.
+     Each page picks its own restrained identity via `data-atmosphere`; the
+     shared layer carries a deep base tone so content stays readable and the
+     page never falls back to a flat rectangle. */
+  .app-ambient {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(52rem 40rem at 12% -14%, color-mix(in srgb, var(--ambient-a, var(--color-accent)) 14%, transparent), transparent 64%),
+      radial-gradient(44rem 34rem at 108% 10%, color-mix(in srgb, var(--ambient-b, var(--color-sky)) 11%, transparent), transparent 66%),
+      radial-gradient(38rem 30rem at 84% 112%, color-mix(in srgb, var(--ambient-c, var(--color-accent)) 9%, transparent), transparent 64%),
+      linear-gradient(180deg, #0b1220 0%, #0a0f1a 46%, #0a0e18 100%);
+  }
+
+  /* WEATHER — deep blue sky base with restrained illumination; the richer
+     condition-driven sky (WeatherAtmosphere) paints on top of this layer. */
+  .app-ambient[data-atmosphere="weather"] {
+    --ambient-a: var(--color-sky);
+    --ambient-b: #1d4ed8;
+    --ambient-c: var(--color-info);
+  }
+
+  /* MY STATION — deeper steel / navy / teal, precise and hardware-tied, with
+     a faint technical grid across the upper canvas. */
+  .app-ambient[data-atmosphere="devices"] {
+    --ambient-a: var(--color-accent);
+    --ambient-b: #334155;
+    --ambient-c: #0f766e;
+  }
+
+  .app-ambient[data-atmosphere="devices"]::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(to right, rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+    background-size: 46px 46px;
+    -webkit-mask-image: radial-gradient(ellipse 80% 55% at 50% 0%, black 0%, transparent 70%);
+    mask-image: radial-gradient(ellipse 80% 55% at 50% 0%, black 0%, transparent 70%);
+  }
+
+  /* ALERTS — deep navy dusk with a restrained warm warning character.
+     Warnings stay semantic through components, never the whole page. */
+  .app-ambient[data-atmosphere="alerts"] {
+    --ambient-a: #b45309;
+    --ambient-b: #1e293b;
+    --ambient-c: #334155;
+  }
+
+  /* ANALYTICS — midnight blue / slate with a faint data grid at the top. */
+  .app-ambient[data-atmosphere="analytics"] {
+    --ambient-a: #2563eb;
+    --ambient-b: #475569;
+    --ambient-c: #0369a1;
+  }
+
+  .app-ambient[data-atmosphere="analytics"]::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(to right, rgba(148, 163, 184, 0.06) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(148, 163, 184, 0.06) 1px, transparent 1px);
+    background-size: 48px 48px;
+    -webkit-mask-image: radial-gradient(ellipse 85% 60% at 50% 0%, black 0%, transparent 72%);
+    mask-image: radial-gradient(ellipse 85% 60% at 50% 0%, black 0%, transparent 72%);
+  }
+
+  /* AI INTELLIGENCE — deep slate data field with a restrained cyan glow and a
+     faint dot-grid. Calm and technical — deliberately no purple "AI" cliché. */
+  .app-ambient[data-atmosphere="ai"] {
+    --ambient-a: #0891b2;
+    --ambient-b: #1e293b;
+    --ambient-c: #155e75;
+  }
+
+  .app-ambient[data-atmosphere="ai"]::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgba(103, 232, 249, 0.05) 1px, transparent 1.4px);
+    background-size: 26px 26px;
+    -webkit-mask-image: radial-gradient(ellipse 70% 55% at 50% 0%, black 0%, transparent 72%);
+    mask-image: radial-gradient(ellipse 70% 55% at 50% 0%, black 0%, transparent 72%);
+  }
+
+  /* PROFILE — dark navy with a calm soft aurora hint, quieter than Weather. */
+  .app-ambient[data-atmosphere="profile"] {
+    --ambient-a: var(--color-sky);
+    --ambient-b: var(--color-accent);
+    --ambient-c: #1d4ed8;
+  }
+
+  /* SETTINGS — dark slate / navy with a restrained teal technical tone. */
+  .app-ambient[data-atmosphere="settings"] {
+    --ambient-a: var(--color-accent);
+    --ambient-b: #334155;
+    --ambient-c: #0d9488;
+  }
+
+  /* AUTH — deep night-sky / navy, minimal and focused. */
+  .app-ambient[data-atmosphere="auth"] {
+    --ambient-a: #1e3a8a;
+    --ambient-b: #1e293b;
+    --ambient-c: var(--color-sky);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-border) 25%,
+    var(--color-border-hover) 50%,
+    var(--color-border) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.float-animation {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* ---- Weather atmosphere (hero + condition visuals) ---- */
+@keyframes weather-glow {
+  0% { opacity: 0.55; transform: scale(1); }
+  100% { opacity: 0.9; transform: scale(1.06); }
+}
+
+@keyframes weather-drift {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(28px); }
+}
+
+@keyframes weather-drift-reverse {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-22px); }
+}
+
+@keyframes weather-rainfall {
+  0% { transform: translateY(-12px); opacity: 0; }
+  15% { opacity: 0.7; }
+  100% { transform: translateY(64px); opacity: 0; }
+}
+
+@keyframes weather-twinkle {
+  0% { opacity: 0.15; }
+  100% { opacity: 0.8; }
+}
+
+.weather-sun-glow,
+.weather-night-glow {
+  border-radius: 9999px;
+  filter: blur(2px);
+}
+
+/* Bright sun disc for clear/bright daytime states — sits within the soft
+   sun glow so the scene reads as a living sky, not a flat gradient. */
+.weather-sun {
+  position: absolute;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 38% 36%, #fffdf4 0%, #fff6d2 42%, #ffe9a4 70%, rgba(255, 233, 164, 0) 100%);
+  box-shadow:
+    0 0 56px 16px rgba(255, 238, 170, 0.42),
+    0 0 120px 44px rgba(255, 228, 150, 0.2);
+}
+
+@keyframes weather-sun-breathe {
+  0%, 100% { opacity: 0.85; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+/* Distant cloud silhouettes — soft blurred ellipses that sit behind the crisp
+   Lucide clouds and give the sky real depth. */
+.weather-far-cloud {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(40px);
+}
+
+.weather-rain {
+  position: absolute;
+  top: 0;
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, rgba(180, 210, 240, 0.75));
+}
+
+.weather-rain-heavy {
+  width: 1.5px;
+  background: linear-gradient(to bottom, transparent, rgba(210, 235, 255, 0.85));
+}
+
+.weather-star {
+  position: absolute;
+  border-radius: 9999px;
+  background: rgba(220, 235, 255, 0.9);
+}
+
+.weather-snow {
+  border-radius: 9999px;
+  background: rgba(240, 248, 255, 0.9);
+  filter: blur(0.5px);
+}
+
+.weather-mist {
+  background: rgba(226, 232, 240, 0.45);
+  filter: blur(18px);
+}
+
+.weather-lightning {
+  opacity: 0;
+}
+
+/* Crescent moon for night scenes. The inset shadow carves the lit crescent
+   from a cool lunar disc; outer glows give it a soft moonlit presence. */
+.weather-moon {
+  position: absolute;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 34% 30%, #f8fbfe 0%, #dbe6f2 58%, #c2d3e5 100%);
+  box-shadow:
+    inset -9px -5px 0 0 rgba(34, 48, 68, 0.5),
+    0 0 44px 6px rgba(226, 236, 248, 0.32),
+    0 0 90px 24px rgba(198, 216, 240, 0.16);
+}
+
+/* Soft ambient glow rising from the horizon — adds cinematic depth to every
+   scene without extra particles. Colour is set inline from the visual state. */
+.weather-horizon-glow {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 55%;
+  background: radial-gradient(130% 100% at 50% 100%, var(--horizon-color, rgba(255, 255, 255, 0.14)) 0%, transparent 68%);
+}
+
+/* Reflective sheen on the ground for wet conditions (rain / drizzle). */
+.weather-wet-sheen {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 30%;
+  background: linear-gradient(to top, rgba(150, 195, 225, 0.16), transparent 72%);
+}
+
+@keyframes weather-moon-breathe {
+  0%, 100% { opacity: 0.82; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.04); }
+}
+
+@keyframes weather-snowfall {
+  0% { transform: translateY(-14px) translateX(0); opacity: 0; }
+  12% { opacity: 0.85; }
+  100% { transform: translateY(112px) translateX(16px); opacity: 0; }
+}
+
+@keyframes weather-mist-drift {
+  0% { transform: translateX(-6%); }
+  100% { transform: translateX(6%); }
+}
+
+/* Gentle, slow illumination — a single soft pulse per cycle, not a strobe. */
+@keyframes weather-lightning {
+  0%, 80% { opacity: 0; }
+  88% { opacity: 0.42; }
+  96% { opacity: 0.14; }
+  100% { opacity: 0; }
+}
+
+/* Slow, soft sun rays for clear/bright scenes. Rotates imperceptibly. */
+@keyframes weather-rays {
+  0% { opacity: 0.4; transform: rotate(0deg); }
+  100% { opacity: 0.62; transform: rotate(8deg); }
+}
+
+/* Pauses ALL animation inside an atmospheric layer (tab hidden). */
+.atmosphere-paused,
+.atmosphere-paused * {
+  animation-play-state: paused !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .weather-sun-glow {
+    animation: weather-glow 6s ease-in-out infinite alternate;
+  }
+
+  .weather-night-glow {
+    animation: weather-glow 7s ease-in-out infinite alternate;
+  }
+
+  .weather-moon {
+    animation: weather-moon-breathe 9s ease-in-out infinite;
+  }
+
+  .weather-sun {
+    animation: weather-sun-breathe 8s ease-in-out infinite;
+  }
+
+  .weather-far-cloud {
+    animation: weather-drift 40s ease-in-out infinite alternate;
+  }
+
+  .weather-far-cloud-reverse {
+    animation: weather-drift-reverse 46s ease-in-out infinite alternate;
+  }
+
+  .weather-cloud-drift {
+    animation: weather-drift 26s linear infinite alternate;
+  }
+
+  .weather-cloud-drift-reverse {
+    animation: weather-drift-reverse 32s linear infinite alternate;
+  }
+
+  .weather-rain {
+    animation: weather-rainfall 0.9s linear infinite;
+  }
+
+  .weather-star {
+    animation: weather-twinkle 3.5s ease-in-out infinite alternate;
+  }
+
+  .weather-snow {
+    animation: weather-snowfall 4.6s linear infinite;
+  }
+
+  .weather-mist {
+    animation: weather-mist-drift 30s ease-in-out infinite alternate;
+  }
+
+  .weather-lightning {
+    animation: weather-lightning 9s ease-in-out infinite;
+  }
+
+  .weather-rays {
+    animation: weather-rays 26s ease-in-out infinite alternate;
+  }
+}

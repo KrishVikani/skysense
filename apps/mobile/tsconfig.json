@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitReturns": true,
+    "noImplicitAny": false,
+    "forceConsistentCasingInFileNames": true,
+    "exactOptionalPropertyTypes": true,
+    "jsx": "react-jsx",
+    "sourceMap": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "declaration": true,
+    "paths": {
+      "@/*": ["./*"],
+      "@skysense/ui/*": ["../packages/ui/src/*"],
+      "@skysense/utils/*": ["../packages/utils/src/*"],
+      "@skysense/api/*": ["../packages/api/src/*"],
+      "@skysense/domain-types/*": ["../packages/domain-types/*"],
+      "@skysense/design-tokens/*": ["../packages/design-tokens/*"],
+      "@skysense/validation/*": ["../packages/validation/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules", "dist"]
+}

@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@skysense/ui/*": ["../../packages/ui/src/*"],
+      "@skysense/utils/*": ["../../packages/utils/src/*"],
+      "@skysense/api/*": ["../../packages/api/src/*"],
+      "@skysense/domain-types/*": ["../../packages/domain-types/*"],
+      "@skysense/design-tokens/*": ["../../packages/design-tokens/*"],
+      "@skysense/validation/*": ["../../packages/validation/*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}

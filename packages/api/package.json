@@ -1,0 +1,12 @@
+{
+  "name": "@skysense/api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "firebase": "^10.8.0",
+    "firebase-admin": "^14.2.0",
+    "@skysense/domain-types": "workspace:*"
+  }
+}

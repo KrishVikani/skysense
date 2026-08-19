@@ -1,0 +1,37 @@
+/** @type {import('expo/config').ExpoConfig} */
+const expoConfig = {
+  name: "SKYSENSE Mobile",
+  slug: "skysenese-mobile",
+  version: "1.0.0",
+  orientation: "portrait",
+  icon: "./assets/icon.png",
+  scheme: "skysense",
+  userInterfaceStyle: "automatic",
+  splash: {
+    image: "./assets/splash.png",
+    resizeMode: "contain",
+    backgroundColor: "#ffffff",
+  },
+  assetBundlePatterns: ["**/*"],
+  ios: {
+    supportsTabletDimensions: true,
+    infoPlist: {
+      NSLocationWhenInUseUsageDescription: "This app needs access to your location to provide weather data.",
+      NSLocationAlwaysUsageDescription: "This app needs access to your location to provide weather data.",
+    },
+  },
+  android: {
+    adaptiveIcon: {
+      foregroundImage: "./assets/adaptiveIcon.png",
+      backgroundColor: "#ffffff",
+    },
+    package: "com.skysense.mobile",
+  },
+  web: {
+    favicon: "./assets/favicon.png",
+  },
+  plugins: ["expo-router"],
+  extras: {},
+}
+
+export default expoConfig

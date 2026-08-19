@@ -1,0 +1,48 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./src/**/*.{js,ts,jsx,tsx}",
+    "../../packages/ui/src/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {
+      fontFamily: {
+        display: ["var(--font-inter)", "sans-serif"],
+        body: ["var(--font-inter)", "sans-serif"],
+      },
+      colors: {
+        background: "var(--color-background)",
+        foreground: "var(--color-foreground)",
+        card: "rgb(var(--color-card-rgb) / <alpha-value>)",
+        "card-hover": "var(--color-card-hover)",
+        border: "rgb(var(--color-border-rgb) / <alpha-value>)",
+        "border-hover": "var(--color-border-hover)",
+        primary: "var(--color-primary)",
+        secondary: "var(--color-secondary)",
+        muted: "rgb(var(--color-muted-rgb) / <alpha-value>)",
+        "muted-foreground": "var(--color-muted-foreground)",
+        success: "var(--color-success)",
+        "success-bg": "var(--color-success-bg)",
+        warning: "var(--color-warning)",
+        "warning-bg": "var(--color-warning-bg)",
+        danger: "rgb(var(--color-danger-rgb) / <alpha-value>)",
+        "danger-bg": "rgb(var(--color-danger-bg-rgb) / <alpha-value>)",
+        info: "var(--color-info)",
+        "info-bg": "var(--color-info-bg)",
+        accent: "rgb(var(--color-accent-rgb) / <alpha-value>)",
+        "accent-hover": "var(--color-accent-hover)",
+        "accent-bg": "var(--color-accent-bg)",
+        "accent-foreground": "var(--color-accent-foreground)",
+        sun: "var(--color-sun)",
+        "sun-bg": "var(--color-sun-bg)",
+        sky: "var(--color-sky)",
+        "sky-bg": "var(--color-sky-bg)",
+        earth: "var(--color-earth)",
+        "earth-bg": "var(--color-earth-bg)",
+        overlay: "var(--color-overlay)",
+        focus: "var(--color-focus)",
+      },
+    },
+  },
+  plugins: [],
+}

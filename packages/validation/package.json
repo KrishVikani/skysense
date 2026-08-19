@@ -1,0 +1,11 @@
+{
+  "name": "@skysense/validation",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "index.ts",
+  "dependencies": {
+    "zod": "^3.23.8",
+    "@skysense/domain-types": "workspace:*"
+  }
+}

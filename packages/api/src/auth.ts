@@ -36,7 +36,7 @@ export interface AuthErrorCode {
 export const authErrorMap: Record<string, string> = {
   "auth/email-already-in-use": "An account with this email already exists.",
   "auth/invalid-email": "Please enter a valid email address.",
-  "auth/operation-not-allowed": "This sign-in method is not enabled.",
+  "auth/operation-not-allowed": "This sign-in method is not enabled. Please contact support or enable Google sign-in in the Firebase Console.",
   "auth/weak-password": "Password should be at least 6 characters.",
   "auth/user-disabled": "This account has been disabled.",
   "auth/user-not-found": "No account found with this email.",
@@ -47,6 +47,7 @@ export const authErrorMap: Record<string, string> = {
   "auth/popup-closed-by-user": "Sign-in was cancelled.",
   "auth/cancelled-popup-request": "Sign-in was cancelled.",
   "auth/popup-blocked": "Popup was blocked by browser. Please allow popups for this site.",
+  "auth/unauthorized-domain": "This domain is not authorized for Google sign-in. Please add it to Firebase Console → Authentication → Authorized domains.",
   "auth/account-exists-with-different-credential": "An account already exists with a different sign-in method.",
   "auth/credential-already-in-use": "This credential is already linked to another account.",
   "auth/requires-recent-login": "Please sign in again to complete this action.",

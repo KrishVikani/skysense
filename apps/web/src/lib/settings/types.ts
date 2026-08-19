@@ -17,7 +17,7 @@ import type { ForecastHorizon } from "@/lib/forecast/types";
 
 export const SETTINGS_SCHEMA_VERSION = 1 as const;
 
-export type ThemePreference = "system" | "light" | "dark";
+export type ThemePreference = "light" | "dark" | "system";
 export type TimeFormatPreference = "12h" | "24h";
 export type DateFormatPreference = "iso" | "short" | "long";
 

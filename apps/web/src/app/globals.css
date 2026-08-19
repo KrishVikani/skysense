@@ -55,6 +55,55 @@
     --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
+  .light {
+    /* SKYsense Light — clean daylight with soft atmospheric depth.
+       Premium weather-app identity preserved through teal/cyan accent,
+       layered surfaces, and restrained gradients. */
+    --color-background: #f8fafc;
+    --color-foreground: #0f172a;
+    --color-card: #ffffff;
+    --color-card-hover: #f1f5f9;
+    --color-border: #e2e8f0;
+    --color-border-hover: #cbd5e1;
+    --color-primary: #0f172a;
+    --color-secondary: #475569;
+    --color-muted: #94a3b8;
+    --color-muted-foreground: #64748b;
+    --color-success: #059669;
+    --color-success-bg: #d1fae5;
+    --color-warning: #d97706;
+    --color-warning-bg: #fef3c7;
+    --color-danger: #dc2626;
+    --color-danger-bg: #fee2e2;
+    --color-info: #0284c7;
+    --color-info-bg: #e0f2fe;
+    --color-accent: #0d9488;
+    --color-accent-hover: #0f766e;
+    --color-accent-bg: #ccfbf1;
+    --color-accent-foreground: #ffffff;
+    --color-accent-rgb: 13 148 136;
+    --color-card-rgb: 255 255 255;
+    --color-border-rgb: 226 232 240;
+    --color-muted-rgb: 148 163 184;
+    --color-danger-rgb: 220 38 38;
+    --color-danger-bg-rgb: 254 226 226;
+    --color-sun: #ca8a04;
+    --color-sun-bg: #fef9c3;
+    --color-sky: #0284c7;
+    --color-sky-bg: #e0f2fe;
+    --color-earth: #65a30d;
+    --color-earth-bg: #dcfce7;
+    --color-overlay: rgba(15, 23, 42, 0.5);
+    --color-focus: #0d9488;
+
+    --duration-fast: 150ms;
+    --duration-normal: 220ms;
+    --duration-slow: 350ms;
+    --duration-enter: 450ms;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
   .dark {
     --color-background: #0a0f1a;
     --color-foreground: #f1f5f9;
@@ -116,6 +165,13 @@
       radial-gradient(60rem 42rem at 10% -12%, color-mix(in srgb, var(--color-accent) 7%, transparent), transparent 60%),
       radial-gradient(48rem 38rem at 112% 6%, color-mix(in srgb, var(--color-sky) 7%, transparent), transparent 62%),
       radial-gradient(40rem 32rem at 90% 108%, color-mix(in srgb, var(--color-accent) 5%, transparent), transparent 60%);
+  }
+
+  .light body {
+    background-image:
+      radial-gradient(60rem 42rem at 10% -12%, color-mix(in srgb, var(--color-accent) 4%, transparent), transparent 60%),
+      radial-gradient(48rem 38rem at 112% 6%, color-mix(in srgb, var(--color-sky) 3%, transparent), transparent 62%),
+      radial-gradient(40rem 32rem at 90% 108%, color-mix(in srgb, var(--color-accent) 2%, transparent), transparent 60%);
   }
 
   ::selection {
@@ -452,6 +508,96 @@
   .app-ambient[data-atmosphere="auth"] {
     --ambient-a: #1e3a8a;
     --ambient-b: #1e293b;
+    --ambient-c: var(--color-sky);
+  }
+}
+
+/* ============================================================
+   LIGHT THEME — Atmospheric variants
+   Subtle, daylight-appropriate atmospheric layers that maintain
+   SKYsense identity without overwhelming the clean light surface.
+   ============================================================ */
+.light {
+  .app-ambient {
+    background:
+      radial-gradient(52rem 40rem at 12% -14%, color-mix(in srgb, var(--ambient-a, var(--color-accent)) 6%, transparent), transparent 64%),
+      radial-gradient(44rem 34rem at 108% 10%, color-mix(in srgb, var(--ambient-b, var(--color-sky)) 5%, transparent), transparent 66%),
+      radial-gradient(38rem 30rem at 84% 112%, color-mix(in srgb, var(--ambient-c, var(--color-accent)) 4%, transparent), transparent 64%),
+      linear-gradient(180deg, #f8fafc 0%, #f1f5f9 46%, #e2e8f0 100%);
+  }
+
+  /* WEATHER — soft morning sky with restrained teal/cyan glow. */
+  .app-ambient[data-atmosphere="weather"] {
+    --ambient-a: var(--color-sky);
+    --ambient-b: #0ea5e9;
+    --ambient-c: var(--color-info);
+  }
+
+  /* MY STATION — clean technical surface with subtle teal grid. */
+  .app-ambient[data-atmosphere="devices"] {
+    --ambient-a: var(--color-accent);
+    --ambient-b: #99f6e4;
+    --ambient-c: #0d9488;
+  }
+
+  .app-ambient[data-atmosphere="devices"]::before {
+    background-image:
+      linear-gradient(to right, rgba(148, 163, 184, 0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(148, 163, 184, 0.03) 1px, transparent 1px);
+    background-size: 46px 46px;
+  }
+
+  /* ALERTS — warm amber dawn, never overwhelming. */
+  .app-ambient[data-atmosphere="alerts"] {
+    --ambient-a: #f59e0b;
+    --ambient-b: #fde68a;
+    --ambient-c: #fbbf24;
+  }
+
+  /* ANALYTICS — crisp blue-slate with faint data grid. */
+  .app-ambient[data-atmosphere="analytics"] {
+    --ambient-a: #3b82f6;
+    --ambient-b: #dbeafe;
+    --ambient-c: #2563eb;
+  }
+
+  .app-ambient[data-atmosphere="analytics"]::before {
+    background-image:
+      linear-gradient(to right, rgba(148, 163, 184, 0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(148, 163, 184, 0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  /* AI INTELLIGENCE — clean cyan/teal field with subtle dot grid. */
+  .app-ambient[data-atmosphere="ai"] {
+    --ambient-a: #06b6d4;
+    --ambient-b: #e0f2fe;
+    --ambient-c: #0891b2;
+  }
+
+  .app-ambient[data-atmosphere="ai"]::before {
+    background-image: radial-gradient(rgba(13, 148, 136, 0.04) 1px, transparent 1.4px);
+    background-size: 26px 26px;
+  }
+
+  /* PROFILE — soft sky/teal aurora, quieter than Weather. */
+  .app-ambient[data-atmosphere="profile"] {
+    --ambient-a: var(--color-sky);
+    --ambient-b: var(--color-accent);
+    --ambient-c: #0ea5e9;
+  }
+
+  /* SETTINGS — clean technical teal tone. */
+  .app-ambient[data-atmosphere="settings"] {
+    --ambient-a: var(--color-accent);
+    --ambient-b: #ccfbf1;
+    --ambient-c: #0d9488;
+  }
+
+  /* AUTH — soft morning sky, minimal and focused. */
+  .app-ambient[data-atmosphere="auth"] {
+    --ambient-a: #3b82f6;
+    --ambient-b: #dbeafe;
     --ambient-c: var(--color-sky);
   }
 }

@@ -9,6 +9,7 @@ const THEME_CYCLE: ThemeChoice[] = ["light", "dark", "system"];
 
 interface ThemeContextValue {
   theme: ThemeChoice;
+  resolvedTheme: "light" | "dark";
   setTheme: (_next: ThemeChoice) => void;
   toggleTheme: () => void;
 }
@@ -63,6 +64,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return () => media.removeEventListener("change", onChange);
   }, [theme, mounted]);
 
+  const resolvedTheme = theme === "system" ? resolveSystemTheme() : theme;
+
   const setTheme = useCallback((next: ThemeChoice) => setThemeState(next), []);
 
   const toggleTheme = useCallback(() => {
@@ -73,7 +76,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );

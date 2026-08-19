@@ -21,8 +21,8 @@ export const viewport = {
   initialScale: 1.0,
 }
 
-// Apply the saved theme before first paint to avoid a light->dark flash.
-const themeBootScript = `(function(){try{var t=null;try{t=localStorage.getItem("theme");}catch(e){}if(t!=="light"&&t!=="dark"&&t!=="system"){t="system";}var system=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.classList.add(t==="system"?system:t);}catch(e){document.documentElement.classList.add("light");}})();`;
+// Apply the saved theme before first paint to avoid a flash of wrong theme.
+const themeBootScript = `(function(){try{var t=null;try{t=localStorage.getItem("theme");}catch(e){}if(t!=="light"&&t!=="dark"&&t!=="system"){t="system";}var system=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";var theme=t==="system"?system:t;var root=document.documentElement;root.classList.remove("light","dark");root.classList.add(theme);}catch(e){var root=document.documentElement;root.classList.remove("light","dark");root.classList.add("dark");}})();`;
 
 export default function RootLayout({
   children,

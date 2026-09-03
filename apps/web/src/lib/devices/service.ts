@@ -1,13 +1,21 @@
 import type { AnalyticsResult } from "@/lib/environmental/types";
 import { getEnvironmentalDataProvider } from "@/lib/environmental/provider";
 import { SENSOR_DEFINITIONS } from "./sensors";
-import { dataAgeMs, isStale, STALE_AFTER_MS } from "./quality";
+import { dataAgeMs, isStale, STALE_AFTER_MS, qualityFrom } from "./quality";
 import {
   ESP32_DEVICE_ID,
-  ESP32_DEVICE_LOCATION,
   ESP32_DEVICE_NAME,
+  ESP32_DEVICE_LOCATION,
 } from "./contract";
-import type { DeviceSnapshot, SensorInfo, SensorKey } from "./types";
+import type {
+  DeviceSnapshot,
+  SensorInfo,
+  SensorKey,
+  DeviceConnectionState,
+  ConnectionMode,
+  DeviceMode,
+  DeviceHealth,
+} from "./types";
 
 /**
  * Source label shown by the Devices module. Mirrors the Intelligence and
@@ -38,8 +46,13 @@ function formatSensorValue(key: SensorKey, value: number): string {
   return value.toFixed(digits);
 }
 
-function buildSensors(analytics: AnalyticsResult): SensorInfo[] {
+function buildSensors(
+  analytics: AnalyticsResult,
+  providerKind: "mock" | "esp32"
+): SensorInfo[] {
   const last = analytics.readings[analytics.readings.length - 1];
+  const isSimulated = providerKind === "mock";
+
   return SENSOR_DEFINITIONS.map((def) => {
     const value = last[def.key];
     return {
@@ -49,14 +62,49 @@ function buildSensors(analytics: AnalyticsResult): SensorInfo[] {
       unit: def.unit,
       dataType: def.dataType,
       validRange: def.validRange,
-      // The simulation provides a value for every sensor, clearly labeled.
-      status: "simulated" as const,
+      status: isSimulated ? ("simulated" as const) : (last.sensorStatus ?? "available"),
       value,
       valueLabel: formatSensorValue(def.key, value),
       lastUpdated: last.timestamp,
       description: def.description,
     };
   });
+}
+
+/**
+ * Fetches device status from the API to get heartbeat/lastSeen info.
+ * This runs server-side only (in the API route), so we call it from the client
+ * via fetch to get the real connection state.
+ */
+async function fetchDeviceStatus(deviceId: string): Promise<{
+  connection: DeviceConnectionState;
+  connectionMode: ConnectionMode;
+  mode: DeviceMode;
+  health: DeviceHealth;
+  lastSeen: string | null;
+  lastSeenAgeMs: number | null;
+  firmwareVersion: string | null;
+  firmwareStatus: string;
+} | null> {
+  try {
+    const res = await fetch(`/api/devices/${deviceId}/status`, { cache: "no-store" });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data.ok) return null;
+
+    return {
+      connection: data.connection,
+      connectionMode: data.connectionMode,
+      mode: data.mode,
+      health: data.connection === "online" ? "healthy" : data.connection === "stale" ? "degraded" : data.connection === "offline" ? "offline" : "unknown",
+      lastSeen: data.lastSeen ?? null,
+      lastSeenAgeMs: data.lastSeen ? Date.now() - new Date(data.lastSeen).getTime() : null,
+      firmwareVersion: data.firmwareVersion ?? null,
+      firmwareStatus: data.firmwareStatus ?? "Unknown",
+    };
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -68,41 +116,106 @@ function buildSensors(analytics: AnalyticsResult): SensorInfo[] {
  */
 export async function getDevicesSnapshot(): Promise<DeviceSnapshot> {
   const provider = getEnvironmentalDataProvider();
-  const analytics = await provider.fetchAnalytics("24h");
-  const last = analytics.readings[analytics.readings.length - 1];
-  const lastUpdated = last.timestamp;
-  const age = dataAgeMs(lastUpdated);
+  const providerKind = provider.kind;
+  const isEsp32 = providerKind === "esp32";
 
-  const sensors = buildSensors(analytics);
+  let analytics: AnalyticsResult | null = null;
+  let lastUpdated: string;
+  let lastReading: AnalyticsResult["readings"][0] | null = null;
+
+  try {
+    analytics = await provider.fetchAnalytics("24h");
+    lastReading = analytics.readings[analytics.readings.length - 1];
+    lastUpdated = lastReading.timestamp;
+  } catch (error) {
+    // No telemetry available yet (ESP32 not connected or no data stored)
+    // Return a snapshot reflecting the "not connected" state
+    const now = new Date().toISOString();
+    const status = isEsp32 ? await fetchDeviceStatus(ESP32_DEVICE_ID) : null;
+
+    return {
+      deviceId: ESP32_DEVICE_ID,
+      deviceName: ESP32_DEVICE_NAME,
+      location: ESP32_DEVICE_LOCATION,
+      connection: status?.connection ?? "not_connected",
+      connectionMode: status?.connectionMode ?? "simulation",
+      mode: status?.mode ?? "simulation",
+      health: status?.health ?? "simulation",
+      dataSource: isEsp32 ? provider.label : DEVICES_DATA_SOURCE,
+      dataSourceKind: isEsp32 ? "esp32" : "simulation",
+      firmwareStatus: status?.firmwareStatus ?? DEVICES_FIRMWARE_STATUS,
+      lastUpdated: now,
+      dataAgeMs: Number.POSITIVE_INFINITY,
+      isStale: true,
+      lastSeen: status?.lastSeen ?? null,
+      lastSeenAgeMs: status?.lastSeenAgeMs ?? null,
+      firmwareVersion: status?.firmwareVersion ?? null,
+      sensorCount: SENSOR_DEFINITIONS.length,
+      reportingSensors: 0,
+      connectedSensors: 0,
+      healthySensorCount: 0,
+      sensors: SENSOR_DEFINITIONS.map((def) => ({
+        key: def.key,
+        label: def.label,
+        hardwareComponent: def.hardwareComponent,
+        unit: def.unit,
+        dataType: def.dataType,
+        validRange: def.validRange,
+        status: "not_connected" as const,
+        value: null,
+        valueLabel: "—",
+        lastUpdated: now,
+        description: def.description,
+      })),
+      dataQuality: isEsp32 ? "disconnected" : "simulated",
+    };
+  }
+
+  // We have real analytics data from the provider
+  const sensors = buildSensors(analytics, providerKind);
   const healthySensorCount = sensors.filter(
     (s) => s.value !== null && s.status !== "error" && s.status !== "stale"
   ).length;
+  const reportingSensors = sensors.filter((s) => s.value !== null).length;
+  const connectedSensors = isEsp32 ? sensors.filter((s) => s.status === "available").length : 0;
+
+  // Determine data quality from the last reading
+  const dataQuality = qualityFrom({
+    sourceIsSimulated: !isEsp32,
+    connected: isEsp32 && lastReading?.connectionMode === "online",
+    hasReadings: true,
+    lastUpdated: lastReading?.timestamp,
+  });
+
+  // Get detailed status from API for heartbeat info
+  const status = isEsp32 ? await fetchDeviceStatus(ESP32_DEVICE_ID) : null;
+  const connection = status?.connection ?? (isEsp32 ? "not_connected" : "simulation");
+  const connectionMode = status?.connectionMode ?? (isEsp32 ? "offline" : "simulation");
+  const mode = status?.mode ?? (isEsp32 ? "live" : "simulation");
+  const health = status?.health ?? (isEsp32 ? "unknown" : "simulation");
 
   return {
     deviceId: ESP32_DEVICE_ID,
     deviceName: ESP32_DEVICE_NAME,
-    location: ESP32_DEVICE_LOCATION,
-    connection: "simulation",
-    connectionMode: "simulation",
-    mode: "simulation",
-    health: "simulation",
-    dataSource: DEVICES_DATA_SOURCE,
-    dataSourceKind: "simulation",
-    firmwareStatus: DEVICES_FIRMWARE_STATUS,
+    location: lastReading?.location ?? ESP32_DEVICE_LOCATION,
+    connection,
+    connectionMode,
+    mode,
+    health,
+    dataSource: isEsp32 ? provider.label : DEVICES_DATA_SOURCE,
+    dataSourceKind: isEsp32 ? "esp32" : "simulation",
+    firmwareStatus: status?.firmwareStatus ?? (isEsp32 ? "Connected" : DEVICES_FIRMWARE_STATUS),
     lastUpdated,
-    dataAgeMs: age,
+    dataAgeMs: dataAgeMs(lastUpdated),
     isStale: isStale(lastUpdated, STALE_AFTER_MS),
-    // No heartbeat exists in Simulation Mode — the device has never been seen
-    // (hardware not connected). `lastSeen` stays null; the future live provider
-    // populates it from the server heartbeat.
-    lastSeen: null,
-    lastSeenAgeMs: null,
-    firmwareVersion: null,
+    lastSeen: status?.lastSeen ?? null,
+    lastSeenAgeMs: status?.lastSeenAgeMs ?? null,
+    firmwareVersion: status?.firmwareVersion ?? lastReading?.firmwareVersion ?? null,
     sensorCount: sensors.length,
-    reportingSensors: sensors.filter((s) => s.value !== null).length,
-    connectedSensors: 0,
+    reportingSensors,
+    connectedSensors,
     healthySensorCount,
     sensors,
-    dataQuality: "simulated",
+    dataQuality,
   };
 }

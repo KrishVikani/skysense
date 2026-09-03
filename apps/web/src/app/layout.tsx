@@ -5,6 +5,7 @@ import { AuthProvider } from "@/components/AuthProvider";
 import { SettingsProvider } from "@/components/SettingsProvider";
 import { LocationProvider } from "@/components/LocationProvider";
 import { MotionProvider } from "@/components/MotionProvider";
+import { EnvironmentalProvider } from "@/components/EnvironmentalProvider";
 import { StartupSplash } from "@/components/onboarding/StartupSplash";
 import { OnboardingGate } from "@/components/onboarding/OnboardingGate";
 
@@ -40,10 +41,12 @@ export default function RootLayout({
             <SettingsProvider>
               <LocationProvider>
                 <MotionProvider>
-                  <StartupSplash />
-                  <OnboardingGate>
-                    {children}
-                  </OnboardingGate>
+                  <EnvironmentalProvider>
+                    <StartupSplash />
+                    <OnboardingGate>
+                      {children}
+                    </OnboardingGate>
+                  </EnvironmentalProvider>
                 </MotionProvider>
               </LocationProvider>
             </SettingsProvider>

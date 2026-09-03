@@ -22,11 +22,13 @@ function Row({ icon, label, value, note }: { icon: ReactNode; label: string; val
 }
 
 /**
- * Dedicated but visually secondary hardware-information section. Kept quiet and
- * honest: the ESP32 is not connected, the platform runs in Simulation Mode on
- * simulated data, and live telemetry is a future state — never implied now.
+ * Dedicated but visually secondary hardware-information section. Shows the
+ * actual hardware connection state — live ESP32 telemetry when connected,
+ * simulation mode when not.
  */
 export function StationHardwareStatus({ snapshot }: { snapshot: DeviceSnapshot }) {
+  const isLive = snapshot.mode === "live" && snapshot.connection === "online";
+
   return (
     <motion.section
       className="card-premium p-5 lg:p-6"
@@ -39,7 +41,9 @@ export function StationHardwareStatus({ snapshot }: { snapshot: DeviceSnapshot }
         id="station-hardware-title"
         icon={<CircuitBoard className="h-4 w-4" aria-hidden="true" />}
         title="Hardware Status"
-        subtitle="Station hardware is planned but not connected — everything shown on this page is simulated"
+        subtitle={isLive
+          ? "ESP32 station is connected and reporting live telemetry"
+          : "Station hardware is not connected — running in simulation mode"}
       />
 
       <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -52,27 +56,27 @@ export function StationHardwareStatus({ snapshot }: { snapshot: DeviceSnapshot }
         <Row
           icon={<Cpu className="h-4 w-4" aria-hidden="true" />}
           label="Current state"
-          value="Simulation Mode"
-          note="ESP32 hardware is not connected"
+          value={isLive ? "Live ESP32 Telemetry" : "Simulation Mode"}
+          note={isLive ? "ESP32 hardware connected" : "ESP32 hardware is not connected"}
         />
         <Row
           icon={<Database className="h-4 w-4" aria-hidden="true" />}
           label="Data source"
           value={snapshot.dataSource}
-          note="deterministic simulated environmental data"
+          note={isLive ? "live ESP32 device telemetry" : "deterministic simulated environmental data"}
         />
         <Row
           icon={<Wrench className="h-4 w-4" aria-hidden="true" />}
-          label="Future state"
-          value="Live ESP32 telemetry"
-          note="the ESP32 will provide live readings after physical integration"
+          label={isLive ? "Operating mode" : "Future state"}
+          value={isLive ? "Live" : "Live ESP32 telemetry"}
+          note={isLive ? "device is actively reporting sensor data" : "the ESP32 will provide live readings after physical integration"}
         />
       </div>
 
       <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
-        When your ESP32 hardware is set up and connected, live readings will take over from the simulated
-        values automatically — My Station, Analytics, AI and Alerts all read from the same data source,
-        so nothing else needs to change.
+        {isLive
+          ? "Your ESP32 station is connected and actively reporting live sensor readings. All pages (My Station, Analytics, AI, Alerts) now display real telemetry from your device."
+          : "When your ESP32 hardware is set up and connected, live readings will take over from the simulated values automatically — My Station, Analytics, AI and Alerts all read from the same data source, so nothing else needs to change."}
       </p>
     </motion.section>
   );

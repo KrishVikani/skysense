@@ -90,11 +90,11 @@ export function StationHero({
                 <span className="absolute inline-flex h-full w-full rounded-full bg-sky-300 opacity-70" />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-sky-300" />
               </span>
-              Simulation Mode
+              {snapshot.mode === "live" ? "Live ESP32 Telemetry" : "Simulation Mode"}
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/25 px-3 py-1 text-xs font-medium text-white/90 backdrop-blur-md">
-              <span className="h-1.5 w-1.5 rounded-full bg-white/70" aria-hidden="true" />
-              Hardware Not Connected
+              <span className={`h-1.5 w-1.5 rounded-full ${snapshot.connection === "online" ? "bg-emerald-400" : "bg-white/70"}`} aria-hidden="true" />
+              {snapshot.connection === "online" ? "Hardware Connected" : "Hardware Not Connected"}
             </span>
           </div>
         </div>
@@ -151,7 +151,9 @@ export function StationHero({
             <span className="font-semibold text-white">{snapshot.dataSource}</span>
           </span>
           <span className="text-white/70">
-            Values are simulated until the ESP32 station is connected.
+            {snapshot.mode === "live"
+              ? "Live readings from your ESP32 station."
+              : "Values are simulated until the ESP32 station is connected."}
           </span>
         </div>
       </div>

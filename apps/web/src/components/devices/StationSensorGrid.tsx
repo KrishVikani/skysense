@@ -55,11 +55,13 @@ function SensorCard({
   summary,
   windDirection,
   index,
+  isLive,
 }: {
   sensor: SensorInfo;
   summary: MetricSummary | undefined;
   windDirection: number;
   index: number;
+  isLive: boolean;
 }) {
   const Icon = SENSOR_ICONS[sensor.key];
   const accent = SENSOR_ACCENTS[sensor.key];
@@ -87,8 +89,8 @@ function SensorCard({
           </div>
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/5 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-          <span className="h-1.5 w-1.5 rounded-full bg-sky" aria-hidden="true" />
-          Simulated
+          <span className={`h-1.5 w-1.5 rounded-full ${isLive ? "bg-emerald-400" : "bg-sky"}`} aria-hidden="true" />
+          {isLive ? "Live" : "Simulated"}
         </span>
       </div>
 
@@ -119,9 +121,8 @@ function SensorCard({
 
 /**
  * Live sensor summary: a clean, readable grid of the station's supported
- * sensors (icon, current value, unit, trend and last-updated context). No
- * hardware identifiers, no ranges — this is the weather-app face of the
- * station. Every value is simulated and labeled as such.
+ * sensors (icon, current value, unit, trend and last-updated context).
+ * Shows live ESP32 data when connected, simulated data when not.
  */
 export function StationSensorGrid({
   snapshot,
@@ -132,6 +133,8 @@ export function StationSensorGrid({
   reading: EnvironmentalReading;
   summary: Record<MetricKey, MetricSummary>;
 }) {
+  const isLive = snapshot.mode === "live" && snapshot.connection === "online";
+
   return (
     <motion.section
       className="space-y-3"
@@ -144,7 +147,9 @@ export function StationSensorGrid({
         id="station-sensors-title"
         icon={<Activity className="h-4 w-4" aria-hidden="true" />}
         title="Live Sensors"
-        subtitle="Current measurements from your station · values shown are simulated"
+        subtitle={isLive
+          ? "Current measurements from your ESP32 station"
+          : "Current measurements from your station · values shown are simulated"}
       />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {snapshot.sensors.map((sensor, index) => {
@@ -156,6 +161,7 @@ export function StationSensorGrid({
               summary={trendKey ? summary[trendKey] : undefined}
               windDirection={reading.windDirection}
               index={index}
+              isLive={isLive}
             />
           );
         })}

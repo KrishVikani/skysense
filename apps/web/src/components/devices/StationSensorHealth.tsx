@@ -41,6 +41,7 @@ function HealthTile({
  */
 export function StationSensorHealth({ snapshot }: { snapshot: DeviceSnapshot }) {
   const healthColor = HEALTH_COLOR[snapshot.health];
+  const isLive = snapshot.mode === "live" && snapshot.connection === "online";
 
   return (
     <motion.section
@@ -61,7 +62,7 @@ export function StationSensorHealth({ snapshot }: { snapshot: DeviceSnapshot }) 
           icon={<Activity className="h-4 w-4" aria-hidden="true" />}
           label="Sensors"
           value={`${snapshot.healthySensorCount} / ${snapshot.sensorCount} healthy`}
-          note="all values simulated today"
+          note={isLive ? "all values from live ESP32 telemetry" : "all values simulated today"}
           color={healthColor}
         />
         <HealthTile
@@ -86,7 +87,9 @@ export function StationSensorHealth({ snapshot }: { snapshot: DeviceSnapshot }) 
           icon={<Wifi className="h-4 w-4" aria-hidden="true" />}
           label="Connection"
           value={CONNECTION_LABEL[snapshot.connection]}
-          note="ESP32 hardware is not connected · waiting for device"
+          note={isLive
+            ? "ESP32 hardware connected and reporting live telemetry"
+            : "ESP32 hardware is not connected · waiting for device"}
         />
       </div>
     </motion.section>

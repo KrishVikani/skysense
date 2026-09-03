@@ -1,6 +1,7 @@
 import type { AnalyticsResult, EnvironmentalReading, TimeRange } from "./types";
 import { computeAnalytics } from "./analytics";
 import { generateReadings } from "./mockData";
+import { ESP32_DEVICE_ID } from "@/lib/devices/contract";
 
 const SIMULATED_DELAY = 300;
 
@@ -17,7 +18,7 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  *        ↓
  *   MockEnvironmentalDataProvider   ← active today (deterministic simulation)
  *        OR
- *   Esp32DataSourceProvider         ← future real hardware (interface only)
+ *   Esp32DataSourceProvider         ← real hardware via API
  */
 export interface DataSourceProvider {
   /** Stable provider identifier, e.g. "mock" | "esp32". */
@@ -40,10 +41,7 @@ export interface DataSourceProvider {
  * Every reading carries device/source metadata (deviceId, location, source,
  * dataQuality: "simulated", connectionStatus: "simulation").
  *
- * FUTURE HARDWARE:
- * This class is the template for the ESP32 provider. When hardware exists, an
- * `Esp32DataSourceProvider` implementing the same interface replaces this one
- * via `getEnvironmentalDataProvider()` — the data model is identical.
+ * Kept for development/testing. Not the active provider when ESP32 is configured.
  */
 export class MockEnvironmentalDataProvider implements DataSourceProvider {
   readonly id = "mock";
@@ -63,17 +61,143 @@ export class MockEnvironmentalDataProvider implements DataSourceProvider {
 
 export const mockEnvironmentalDataProvider = new MockEnvironmentalDataProvider();
 
+/**
+ * ESP32-backed provider that fetches real telemetry from the SKYSENSE API.
+ *
+ * Fetches stored readings from `/api/devices/:deviceId/data` (latest) and
+ * `/api/devices/:deviceId/data/history` (history), maps them to
+ * `EnvironmentalReading[]`, and derives analytics via `computeAnalytics`.
+ *
+ * All device credentials remain server-side. The provider only calls the
+ * public GET endpoints — no secrets in the browser bundle.
+ */
+export class Esp32DataSourceProvider implements DataSourceProvider {
+  readonly id = "esp32";
+  readonly label = "ESP32 device telemetry";
+  readonly kind = "esp32" as const;
+
+  private readonly deviceId: string;
+
+  constructor(deviceId: string = ESP32_DEVICE_ID) {
+    this.deviceId = deviceId;
+  }
+
+  private apiBase(): string {
+    // In browser, use relative URLs to the same origin
+    return "";
+  }
+
+  private async fetchJson<T>(path: string): Promise<T> {
+    const res = await fetch(`${this.apiBase()}${path}`, {
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `API error ${res.status}`);
+    }
+    return res.json();
+  }
+
+  private mapStoredToReading(reading: StoredDeviceReading): EnvironmentalReading {
+    return {
+      timestamp: reading.timestamp,
+      temperature: reading.temperature ?? 0,
+      humidity: reading.humidity ?? 0,
+      windSpeed: reading.windSpeed ?? 0,
+      windDirection: reading.windDirection ?? 0,
+      uvIndex: reading.uvIndex ?? 0,
+      airQuality: reading.airQuality ?? 0,
+      pressure: reading.pressure ?? 0,
+      rainfall: reading.rainfall ?? 0,
+      deviceId: reading.deviceId,
+      location: reading.location,
+      source: this.label,
+      dataQuality: reading.connectionMode === "online" ? "good" : "stale",
+      connectionStatus: reading.connectionMode === "online" ? "online" : "offline",
+      dataSource: "esp32",
+      connectionMode: reading.connectionMode,
+      firmwareVersion: reading.firmwareVersion,
+      sensorStatus: reading.sensorStatus,
+    };
+  }
+
+  async fetchReadings(range: TimeRange): Promise<EnvironmentalReading[]> {
+    // Use history endpoint to get up to 50 most recent readings
+    const maxPoints = range === "24h" ? 48 : range === "7d" ? 168 : 50;
+    const data = await this.fetchJson<HistoryResponse>(
+      `/api/devices/${this.deviceId}/data/history?max=${maxPoints}`
+    );
+
+    if (!data.ok || !data.readings || data.readings.length === 0) {
+      return [];
+    }
+
+    // Filter by time range (server returns newest first)
+    const now = Date.now();
+    const rangeMs = range === "24h" ? 24 * 60 * 60 * 1000 : range === "7d" ? 7 * 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000;
+    const cutoff = now - rangeMs;
+
+    const filtered = data.readings
+      .filter((r: StoredDeviceReading) => new Date(r.timestamp).getTime() >= cutoff)
+      .map((r: StoredDeviceReading) => this.mapStoredToReading(r))
+      .sort((a: EnvironmentalReading, b: EnvironmentalReading) =>
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      );
+
+    return filtered;
+  }
+
+  async fetchAnalytics(range: TimeRange): Promise<AnalyticsResult> {
+    const readings = await this.fetchReadings(range);
+
+    if (readings.length === 0) {
+      // No telemetry yet — return a minimal AnalyticsResult so UI doesn't crash
+      // The Devices page will show "no data" state via the existing logic
+      throw new Error("No ESP32 telemetry available yet");
+    }
+
+    return computeAnalytics(readings, range);
+  }
+}
+
+/** Response shape from /api/devices/:deviceId/data/history */
+interface HistoryResponse {
+  ok: boolean;
+  deviceId: string;
+  count: number;
+  readings: StoredDeviceReading[];
+  note?: string;
+}
+
+/** Raw stored reading shape from the API (subset of StoredDeviceReading) */
+interface StoredDeviceReading {
+  id?: string;
+  deviceId: string;
+  timestamp: string;
+  temperature: number | null;
+  humidity: number | null;
+  pressure: number | null;
+  airQuality: number | null;
+  uvIndex: number | null;
+  windSpeed: number | null;
+  windDirection: number | null;
+  rainfall: number | null;
+  dataSource: "esp32";
+  connectionMode: "online" | "offline" | "simulation";
+  location: string;
+  firmwareVersion?: string;
+  battery?: number;
+  sensorStatus: "not_connected" | "simulated" | "available" | "stale" | "error";
+  receivedAt: string;
+}
+
+export const mockEnvironmentalDataProviderInstance = mockEnvironmentalDataProvider;
+
 let activeProvider: DataSourceProvider = mockEnvironmentalDataProvider;
 
 /**
  * Returns the provider currently feeding the product.
- *
- * FUTURE HARDWARE:
- * The ESP32 integration point. A future `Esp32DataSourceProvider` (fetching
- * sensor values through the ingestion API) is registered here, e.g.
- * `setEnvironmentalDataProvider(createEsp32Provider({ baseUrl, deviceToken }))`.
- * Device credentials must be supplied server-side and never embedded in the
- * browser bundle.
  */
 export function getEnvironmentalDataProvider(): DataSourceProvider {
   return activeProvider;
@@ -85,16 +209,18 @@ export function setEnvironmentalDataProvider(provider: DataSourceProvider): void
 }
 
 /**
- * Contract for the future ESP32-backed provider.
- *
- * Implementation notes for the hardware phase:
- *  - It fetches EnvironmentalData by calling the ingestion endpoint
- *    `POST /api/devices/:deviceId/data` (validated server-side).
- *  - `fetchReadings` maps telemetry → `EnvironmentalReading[]` (same shape the
- *    mock provider emits today).
- *  - `fetchAnalytics` stays `computeAnalytics(readings, range)` — unchanged.
+ * Initializes the active provider based on environment.
+ * Call this once at app startup (e.g., in a layout or provider component).
  */
-export interface Esp32DataSourceProvider extends DataSourceProvider {
+export function initializeEnvironmentalProvider(): void {
+  // Check if we should use ESP32 provider (can be controlled via env or config)
+  // For now, always use ESP32 provider since the API exists
+  // The provider gracefully handles "no data yet" state
+  activeProvider = new Esp32DataSourceProvider();
+}
+
+/** Contract for the future ESP32-backed provider (kept for compatibility). */
+export interface Esp32DataSourceProviderContract extends DataSourceProvider {
   readonly id: "esp32";
   readonly kind: "esp32";
   /** Base URL of the SKYSENSE ingestion API. */

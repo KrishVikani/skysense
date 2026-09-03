@@ -147,6 +147,7 @@ export default function MyStationPageClient() {
   }
 
   const reading = analytics.readings[analytics.readings.length - 1];
+  const isLive = snapshot.mode === "live" && snapshot.connection === "online";
 
   return (
     <DashboardShell atmosphere="devices">
@@ -192,58 +193,83 @@ export default function MyStationPageClient() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.08 }}
         >
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent-bg/40">
-              <Cpu className="h-5 w-5 text-accent" aria-hidden="true" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-foreground">Connect your SKYsense station</p>
-              <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
-                Pair an ESP32-based station for live readings from your own environment. Until then, My Station
-                keeps running in Simulation Mode so every screen stays useful.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setSetupOpen((open) => !open)}
-              aria-expanded={setupOpen}
-              aria-controls="station-setup-guide"
-              className="btn-secondary shrink-0"
-            >
-              {setupOpen ? "Hide guide" : "Connect device"}
-              <ChevronDown className={`h-4 w-4 transition-transform ${setupOpen ? "rotate-180" : ""}`} aria-hidden="true" />
-            </button>
-          </div>
+          {!isLive && (
+            <>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent-bg/40">
+                  <Cpu className="h-5 w-5 text-accent" aria-hidden="true" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-foreground">Connect your SKYsense station</p>
+                  <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
+                    Pair an ESP32-based station for live readings from your own environment. Until then, My Station
+                    keeps running in Simulation Mode so every screen stays useful.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSetupOpen((open) => !open)}
+                  aria-expanded={setupOpen}
+                  aria-controls="station-setup-guide"
+                  className="btn-secondary shrink-0"
+                >
+                  {setupOpen ? "Hide guide" : "Connect device"}
+                  <ChevronDown className={`h-4 w-4 transition-transform ${setupOpen ? "rotate-180" : ""}`} aria-hidden="true" />
+                </button>
+              </div>
 
-          {setupOpen && (
-            <div id="station-setup-guide" className="mt-4 border-t border-border pt-4">
-              <p className="text-sm font-medium text-foreground">What to expect when you connect your station</p>
-              <ol className="mt-3 space-y-3">
-                {[
-                  { icon: Cpu, title: "Prepare the ESP32", detail: "Flash the SKYsense firmware to the board and give it power." },
-                  { icon: Power, title: "Power & connect", detail: "The station boots and joins your Wi-Fi network." },
-                  { icon: KeyRound, title: "Register the device", detail: "Link the station to your SKYsense account with its pairing code." },
-                  { icon: Activity, title: "Verify live readings", detail: "Once registered, live sensor readings replace Simulation Mode automatically." },
-                ].map(({ icon: Icon, title, detail }, index) => (
-                  <li key={title} className="flex items-start gap-3">
-                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted/10 text-[11px] font-semibold text-muted-foreground" aria-hidden="true">
-                      {index + 1}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
-                        <Icon className="h-3.5 w-3.5 text-accent" aria-hidden="true" />
-                        {title}
-                      </p>
-                      <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{detail}</p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-              <p className="mt-4 flex items-start gap-1.5 text-xs leading-relaxed text-muted-foreground">
-                <Wifi className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                The detailed setup walkthrough ships with the ESP32 firmware. No hardware is paired to this account
-                yet — the station status below reflects Simulation Mode.
-              </p>
+              {setupOpen && (
+                <div id="station-setup-guide" className="mt-4 border-t border-border pt-4">
+                  <p className="text-sm font-medium text-foreground">What to expect when you connect your station</p>
+                  <ol className="mt-3 space-y-3">
+                    {[
+                      { icon: Cpu, title: "Prepare the ESP32", detail: "Flash the SKYsense firmware to the board and give it power." },
+                      { icon: Power, title: "Power & connect", detail: "The station boots and joins your Wi-Fi network." },
+                      { icon: KeyRound, title: "Register the device", detail: "Link the station to your SKYsense account with its pairing code." },
+                      { icon: Activity, title: "Verify live readings", detail: "Once registered, live sensor readings replace Simulation Mode automatically." },
+                    ].map(({ icon: Icon, title, detail }, index) => (
+                      <li key={title} className="flex items-start gap-3">
+                        <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted/10 text-[11px] font-semibold text-muted-foreground" aria-hidden="true">
+                          {index + 1}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                            <Icon className="h-3.5 w-3.5 text-accent" aria-hidden="true" />
+                            {title}
+                          </p>
+                          <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{detail}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                  <p className="mt-4 flex items-start gap-1.5 text-xs leading-relaxed text-muted-foreground">
+                    <Wifi className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    The detailed setup walkthrough ships with the ESP32 firmware. No hardware is paired to this account
+                    yet — the station status below reflects Simulation Mode.
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+
+          {isLive && (
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20">
+                <Activity className="h-5 w-5 text-emerald-400" aria-hidden="true" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-foreground">ESP32 Station Connected</p>
+                <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
+                  Your station is online and reporting live telemetry. All readings are from your physical device.
+                </p>
+              </div>
+              <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/50 bg-emerald-500/10 px-3 py-1 text-sm font-medium text-emerald-300">
+                <span className="relative flex h-1.5 w-1.5" aria-hidden="true">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-70 animate-pulse" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                </span>
+                Live ESP32 Telemetry
+              </span>
             </div>
           )}
         </motion.div>
@@ -259,9 +285,9 @@ export default function MyStationPageClient() {
         <StationHardwareStatus snapshot={snapshot} />
 
         <p className="px-1 text-[11px] leading-relaxed text-muted-foreground">
-          ESP32 hardware is not connected — My Station is running in Simulation Mode. Sensor values and
-          telemetry are software placeholders from the deterministic data feed. When physical hardware is
-          integrated, live readings replace them automatically.
+          {isLive
+            ? "Live ESP32 telemetry active — all readings are from your physical station."
+            : "ESP32 hardware is not connected — My Station is running in Simulation Mode. Sensor values and telemetry are software placeholders from the deterministic data feed. When physical hardware is integrated, live readings replace them automatically."}
         </p>
 
         <span aria-live="polite" className="sr-only">

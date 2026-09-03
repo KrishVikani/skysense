@@ -1,6 +1,6 @@
 import type { ConnectionMode, DataQuality, DataSource, SensorStatus } from "@/lib/environmental/types";
 
-export type { SensorStatus } from "@/lib/environmental/types";
+export type { ConnectionMode, DataQuality, DataSource, SensorStatus } from "@/lib/environmental/types";
 
 /**
  * The eight conceptual sensors the future SKYSENSE ESP32 station supports.

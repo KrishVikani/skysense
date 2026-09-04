@@ -129,18 +129,22 @@ export async function getDevicesSnapshot(): Promise<DeviceSnapshot> {
     lastUpdated = lastReading.timestamp;
   } catch (error) {
     // No telemetry available yet (ESP32 not connected or no data stored)
-    // Return a snapshot reflecting the "not connected" state
+    // Return a snapshot reflecting the "not connected" state,
+    // but always derive connection state from the API so the UI
+    // correctly shows LIVE when the ESP32 is online even if no
+    // readings have been stored yet (heartbeat may still be recorded).
     const now = new Date().toISOString();
-    const status = isEsp32 ? await fetchDeviceStatus(ESP32_DEVICE_ID) : null;
+    const apiStatus = await fetchDeviceStatus(ESP32_DEVICE_ID);
+    const status = isEsp32 ? apiStatus : null;
 
     return {
       deviceId: ESP32_DEVICE_ID,
       deviceName: ESP32_DEVICE_NAME,
       location: ESP32_DEVICE_LOCATION,
       connection: status?.connection ?? "not_connected",
-      connectionMode: status?.connectionMode ?? "simulation",
+      connectionMode: status?.connectionMode ?? "offline",
       mode: status?.mode ?? "simulation",
-      health: status?.health ?? "simulation",
+      health: status?.health ?? "unknown",
       dataSource: isEsp32 ? provider.label : DEVICES_DATA_SOURCE,
       dataSourceKind: isEsp32 ? "esp32" : "simulation",
       firmwareStatus: status?.firmwareStatus ?? DEVICES_FIRMWARE_STATUS,

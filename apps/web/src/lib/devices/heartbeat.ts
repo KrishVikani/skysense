@@ -35,6 +35,20 @@ export const HEARTBEAT_OFFLINE_AFTER_MS_DEFAULT = 15 * 60 * 1000;
 export const HEARTBEAT_STALE_AFTER_ENV = "SKYSENSE_DEVICE_STALE_AFTER_MS";
 export const HEARTBEAT_OFFLINE_AFTER_ENV = "SKYSENSE_DEVICE_OFFLINE_AFTER_MS";
 
+/** Configuration for device connection state derivation thresholds. */
+export type ConnectionThresholds = {
+  /** Age in ms after which a device is considered stale (default: 5 min). */
+  staleAfterMs: number;
+  /** Age in ms after which a device is considered offline (default: 15 min). */
+  offlineAfterMs: number;
+};
+
+/** Default connection thresholds (configurable via env vars, never NEXT_PUBLIC_). */
+export const DEFAULT_CONNECTION_THRESHOLDS: ConnectionThresholds = {
+  staleAfterMs: HEARTBEAT_STALE_AFTER_MS_DEFAULT,
+  offlineAfterMs: HEARTBEAT_OFFLINE_AFTER_MS_DEFAULT,
+};
+
 function parseEnvMs(envName: string, fallback: number): number {
   if (typeof process === "undefined" || !process.env) return fallback;
   const raw = process.env[envName];

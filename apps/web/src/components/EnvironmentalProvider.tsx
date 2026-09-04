@@ -39,9 +39,24 @@ export function EnvironmentalProvider({ children }: { children: React.ReactNode 
           }, 30_000); // 30‑second retry interval (sensible, non‑aggressive).
         }
       }
+      // 4. Quick retry after 1 second to handle edge cases where the initial
+      //    check runs before the ESP32 is fully ready. This is not aggressive
+      //    polling — it’s a single one‑second delay after mount.
+      setTimeout(async () => {
+        try {
+          await tryActivateEsp32Provider();
+          // On success, clear the interval if it’s still running.
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
+        } catch {
+          // Keep retrying via the 30s interval established above.
+        }
+      }, 1_000);
     })();
 
-    // 4. Cleanup on unmount — prevents leaked timers if the component is
+    // 5. Cleanup on unmount — prevents leaked timers if the component is
     //    removed from the tree before the device comes online.
     return () => {
       if (intervalRef.current) {

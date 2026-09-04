@@ -14,6 +14,7 @@ import { ScoreSection } from "@/components/analytics/ScoreSection";
 import { InsightsSection } from "@/components/analytics/InsightsSection";
 import { Freshness } from "@/components/analytics/Freshness";
 import { getEnvironmentalAnalytics } from "@/lib/environmental/service";
+import { getEnvironmentalDataProvider } from "@/lib/environmental/provider";
 import type { AnalyticsResult, MetricKey, TimeRange } from "@/lib/environmental/types";
 
 function AnalyticsSkeleton() {
@@ -85,6 +86,19 @@ export default function AnalyticsPageClient() {
       cancelled = true;
     };
   }, [range, reloadKey]);
+
+  // Re-fetch analytics when the environmental provider switches from mock to ESP32.
+  // This ensures Analytics automatically uses real ESP32 telemetry when the device
+  // becomes available, leveraging the existing global provider state already
+  // managed by EnvironmentalProvider.
+  useEffect(() => {
+    const provider = getEnvironmentalDataProvider();
+    if (provider.kind === "esp32") {
+      getEnvironmentalAnalytics(range).then((data) => {
+        setResult(data);
+      });
+    }
+  }, [range]);
 
   if (error && !result) {
     return <AnalyticsError onRetry={() => setReloadKey((k) => k + 1)} />;

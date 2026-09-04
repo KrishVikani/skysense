@@ -15,6 +15,8 @@ import { InsightsSection } from "@/components/analytics/InsightsSection";
 import { Freshness } from "@/components/analytics/Freshness";
 import { getEnvironmentalAnalytics } from "@/lib/environmental/service";
 import { getEnvironmentalDataProvider } from "@/lib/environmental/provider";
+import { fetchDeviceStatus } from "@/lib/devices/service";
+import { ESP32_DEVICE_ID } from "@/lib/devices/contract";
 import type { AnalyticsResult, MetricKey, TimeRange } from "@/lib/environmental/types";
 
 function AnalyticsSkeleton() {
@@ -56,7 +58,6 @@ function AnalyticsError({ onRetry }: { onRetry: () => void }) {
     </DashboardShell>
   );
 }
-
 export default function AnalyticsPageClient() {
   const [range, setRange] = useState<TimeRange>("24h");
   const [activeMetric, setActiveMetric] = useState<MetricKey>("temperature");
@@ -64,6 +65,11 @@ export default function AnalyticsPageClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const [deviceStatus, setDeviceStatus] = useState<{
+    connection: string;
+    mode: string;
+    lastSeen: string | null;
+  } | null>(null);
 
   const dataProvider = getEnvironmentalDataProvider();
   const providerKind = dataProvider.kind;
@@ -107,6 +113,37 @@ export default function AnalyticsPageClient() {
     }
   }, [range]);
 
+  // Fetch device status once on mount to determine the authoritative live/simulation state.
+  useEffect(() => {
+    let cancelled = false;
+    fetchDeviceStatus(ESP32_DEVICE_ID)
+      .then((status) => {
+        if (!cancelled) {
+          setDeviceStatus(status);
+        }
+      })
+      .catch(() => {
+        // Device status API failure — keep previous state; banner will fall back to simulation.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Determine the live/simulation banner state from the authoritative device status.
+  const isDeviceOnline = deviceStatus?.connection === "online";
+  const bannerIsLive = isDeviceOnline && result?.dataSource === "esp32";
+
+  // Re-fetch analytics when the environmental provider switches from mock to ESP32.
+  // Depend on the ref so we detect the switch even if the component does not re-render.
+  useEffect(() => {
+    if (providerKindRef.current === "esp32") {
+      getEnvironmentalAnalytics(range).then((data) => {
+        setResult(data);
+      });
+    }
+  }, [range]);
+
   if (error && !result) {
     return <AnalyticsError onRetry={() => setReloadKey((k) => k + 1)} />;
   }
@@ -135,9 +172,6 @@ export default function AnalyticsPageClient() {
   const isEsp32 = result.dataSource === "esp32";
   const badgeClass = isEsp32 ? "badge badge-success" : "badge badge-warning";
   const badgeLabel = isEsp32 ? "LIVE ESP32 Telemetry" : "Simulation Mode";
-  const badgeIcon = isEsp32
-    ? <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-success" />
-    : <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-warning" />;
 
   return (
     <DashboardShell atmosphere="analytics">
@@ -155,14 +189,21 @@ export default function AnalyticsPageClient() {
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <span className={badgeClass}>
-                {badgeLabel}
+                {bannerIsLive ? "LIVE ESP32 Telemetry" : badgeLabel}
                 <span className="relative flex h-1.5 w-1.5" aria-hidden="true">
-                  {badgeIcon}
+                  {isEsp32 ? (
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-success" />
+                  ) : (
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-warning" />
+                  )}
                 </span>
               </span>
-              <span className="text-xs text-muted-foreground">Simulated environmental data · ESP32 not connected</span>
+              {result.dataSource !== "esp32" && (
+                <span className="text-xs text-muted-foreground">Simulated environmental data · ESP32 not connected</span>
+              )}
             </div>
           </div>
+
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-muted/5 text-sm text-muted-foreground">
               <MapPin className="w-4 h-4 text-accent" />

@@ -76,7 +76,7 @@ function buildSensors(
  * This runs server-side only (in the API route), so we call it from the client
  * via fetch to get the real connection state.
  */
-async function fetchDeviceStatus(deviceId: string): Promise<{
+export async function fetchDeviceStatus(deviceId: string): Promise<{
   connection: DeviceConnectionState;
   connectionMode: ConnectionMode;
   mode: DeviceMode;

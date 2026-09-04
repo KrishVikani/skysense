@@ -211,12 +211,43 @@ export function setEnvironmentalDataProvider(provider: DataSourceProvider): void
 /**
  * Initializes the active provider based on environment.
  * Call this once at app startup (e.g., in a layout or provider component).
+ *
+ * Starts with the mock provider to prevent the app from getting stuck in
+ * Simulation Mode when initialization happens before the ESP32/API status
+ * is available. The provider can be switched to ESP32 later via
+ * {@link tryActivateEsp32Provider} when the API becomes available.
  */
 export function initializeEnvironmentalProvider(): void {
-  // Check if we should use ESP32 provider (can be controlled via env or config)
-  // For now, always use ESP32 provider since the API exists
-  // The provider gracefully handles "no data yet" state
-  activeProvider = new Esp32DataSourceProvider();
+  activeProvider = mockEnvironmentalDataProvider;
+}
+
+/**
+ * Attempts to activate the ESP32-backed data provider if the API is
+ * available. Safe to call multiple times; idempotent if the API is already
+ * unreachable. Designed to be called after app mount when the ESP32 may
+ * have had time to initialize and report telemetry.
+ *
+ * If the device status endpoint returns `connection=online`, the ESP32
+ * provider is activated and all modules automatically read from real
+ * telemetry without a full rebuild. If the API is unavailable, the mock
+ * provider remains active and the UI gracefully falls back to simulated
+ * data.
+ */
+export async function tryActivateEsp32Provider(): Promise<void> {
+  try {
+    const res = await fetch(`/api/devices/${ESP32_DEVICE_ID}/status`, {
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (!data.ok) throw new Error("Device status invalid");
+    if (data.connection !== "online") throw new Error("Device not online");
+    // API is available and device is online — switch to ESP32 provider
+    setEnvironmentalDataProvider(new Esp32DataSourceProvider());
+  } catch {
+    // Keep mock provider; caller may retry later if desired.
+    // No-op: mock provider stays active.
+  }
 }
 
 /** Contract for the future ESP32-backed provider (kept for compatibility). */

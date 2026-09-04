@@ -68,6 +68,7 @@ export default function AnalyticsPageClient() {
   const [deviceStatus, setDeviceStatus] = useState<{
     connection: string;
     mode: string;
+    dataSource: string | undefined;
     lastSeen: string | null;
   } | null>(null);
 
@@ -132,7 +133,7 @@ export default function AnalyticsPageClient() {
 
   // Determine the live/simulation banner state from the authoritative device status.
   const isDeviceOnline = deviceStatus?.connection === "online";
-  const bannerIsLive = isDeviceOnline && result?.dataSource === "esp32";
+  const bannerIsLive = isDeviceOnline && deviceStatus?.dataSource === "esp32";
 
   // Re-fetch analytics when the environmental provider switches from mock to ESP32.
   // Depend on the ref so we detect the switch even if the component does not re-render.

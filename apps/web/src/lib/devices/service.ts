@@ -85,6 +85,7 @@ export async function fetchDeviceStatus(deviceId: string): Promise<{
   lastSeenAgeMs: number | null;
   firmwareVersion: string | null;
   firmwareStatus: string;
+  dataSource: string | undefined;
 } | null> {
   try {
     const res = await fetch(`/api/devices/${deviceId}/status`, { cache: "no-store" });
@@ -101,6 +102,7 @@ export async function fetchDeviceStatus(deviceId: string): Promise<{
       lastSeenAgeMs: data.lastSeen ? Date.now() - new Date(data.lastSeen).getTime() : null,
       firmwareVersion: data.firmwareVersion ?? null,
       firmwareStatus: data.firmwareStatus ?? "Unknown",
+      dataSource: data.dataSource,
     };
   } catch {
     return null;

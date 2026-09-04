@@ -57,6 +57,7 @@ function MyStationError({ onRetry }: { onRetry: () => void }) {
 
 export default function MyStationPageClient() {
   const [snapshot, setSnapshot] = useState<DeviceSnapshot | null>(null);
+  const [previousSnapshot, setPreviousSnapshot] = useState<DeviceSnapshot | null>(null);
   const [analytics, setAnalytics] = useState<AnalyticsResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasLoaded, setHasLoaded] = useState(false);
@@ -82,9 +83,10 @@ export default function MyStationPageClient() {
     setError(false);
     setRefreshing(true);
 
-    Promise.all([getDevicesSnapshot(), getEnvironmentalAnalytics("24h")])
+    Promise.all([getDevicesSnapshot(previousSnapshot), getEnvironmentalAnalytics("24h")])
       .then(([nextSnapshot, nextAnalytics]) => {
         if (cancelled) return;
+        setPreviousSnapshot(snapshot);
         setSnapshot(withDisplayUnits(nextSnapshot, settings.units));
         setAnalytics(nextAnalytics);
         setHasLoaded(true);
@@ -107,7 +109,7 @@ export default function MyStationPageClient() {
     return () => {
       cancelled = true;
     };
-  }, [reloadKey, settings.units]);
+  }, [reloadKey, settings.units, snapshot, previousSnapshot]);
 
   // LIVE REFRESH: poll the snapshot at the user-configured interval (bounded in
   // Settings). Paused while the tab is hidden and skipped when a request is in
@@ -148,6 +150,11 @@ export default function MyStationPageClient() {
 
   const reading = analytics.readings[analytics.readings.length - 1];
   const isLive = snapshot.mode === "live" && snapshot.connection === "online";
+  const lastSeenAgeMs =
+    snapshot.lastSeen !== null
+      ? Date.now() - new Date(snapshot.lastSeen).getTime()
+      : null;
+  const lastSeenLabel = lastSeenAgeMs != null ? formatAge(lastSeenAgeMs) : "never";
 
   return (
     <DashboardShell atmosphere="devices">
@@ -173,6 +180,12 @@ export default function MyStationPageClient() {
               <Clock className="w-4 h-4 text-accent" />
               Updated <span className="font-medium text-foreground">{formatAge(snapshot.dataAgeMs)}</span>
             </div>
+            {lastSeenLabel !== "never" && (
+              <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-muted/5 text-sm text-muted-foreground">
+                <Clock className="w-4 h-4 text-accent" />
+                Last seen <span className="font-medium text-foreground">{lastSeenLabel}</span>
+              </div>
+            )}
             <button
               type="button"
               onClick={refresh}

@@ -111,6 +111,12 @@ export default function AnalyticsPageClient() {
   }
 
   const quality = result.readings[0]?.dataQuality ?? "simulated";
+  const isEsp32 = result.dataSource === "esp32";
+  const badgeClass = isEsp32 ? "badge badge-success" : "badge badge-warning";
+  const badgeLabel = isEsp32 ? "LIVE ESP32 Telemetry" : "Simulation Mode";
+  const badgeIcon = isEsp32
+    ? <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-success" />
+    : <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-warning" />;
 
   return (
     <DashboardShell atmosphere="analytics">
@@ -127,11 +133,11 @@ export default function AnalyticsPageClient() {
               Historical trends, patterns and environmental conditions over time
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <span className="badge badge-warning">
+              <span className={badgeClass}>
+                {badgeLabel}
                 <span className="relative flex h-1.5 w-1.5" aria-hidden="true">
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-warning" />
+                  {badgeIcon}
                 </span>
-                Simulation Mode
               </span>
               <span className="text-xs text-muted-foreground">Simulated environmental data · ESP32 not connected</span>
             </div>

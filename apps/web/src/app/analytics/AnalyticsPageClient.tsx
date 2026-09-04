@@ -65,6 +65,9 @@ export default function AnalyticsPageClient() {
   const [error, setError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
+  const dataProvider = getEnvironmentalDataProvider();
+  const providerKind = dataProvider.kind;
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -92,13 +95,12 @@ export default function AnalyticsPageClient() {
   // becomes available, leveraging the existing global provider state already
   // managed by EnvironmentalProvider.
   useEffect(() => {
-    const provider = getEnvironmentalDataProvider();
-    if (provider.kind === "esp32") {
+    if (providerKind === "esp32") {
       getEnvironmentalAnalytics(range).then((data) => {
         setResult(data);
       });
     }
-  }, [range]);
+  }, [range, providerKind]);
 
   if (error && !result) {
     return <AnalyticsError onRetry={() => setReloadKey((k) => k + 1)} />;

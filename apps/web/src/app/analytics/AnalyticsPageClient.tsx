@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { MapPin, BarChart3, AlertTriangle, RefreshCw } from "lucide-react";
 import { DashboardShell } from "@/components/DashboardShell";
@@ -68,6 +68,13 @@ export default function AnalyticsPageClient() {
   const dataProvider = getEnvironmentalDataProvider();
   const providerKind = dataProvider.kind;
 
+  // Track provider kind changes via ref so Analytics re-fetches when the
+  // EnvironmentalProvider switches from mock → esp32, even if the component
+  // does not re-render. This reuses the existing global provider state already
+  // managed by EnvironmentalProvider — no new polling, no duplicate logic.
+  const providerKindRef = useRef(providerKind);
+  providerKindRef.current = dataProvider.kind;
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -91,16 +98,14 @@ export default function AnalyticsPageClient() {
   }, [range, reloadKey]);
 
   // Re-fetch analytics when the environmental provider switches from mock to ESP32.
-  // This ensures Analytics automatically uses real ESP32 telemetry when the device
-  // becomes available, leveraging the existing global provider state already
-  // managed by EnvironmentalProvider.
+  // Depend on the ref so we detect the switch even if the component does not re-render.
   useEffect(() => {
-    if (providerKind === "esp32") {
+    if (providerKindRef.current === "esp32") {
       getEnvironmentalAnalytics(range).then((data) => {
         setResult(data);
       });
     }
-  }, [range, providerKind]);
+  }, [range]);
 
   if (error && !result) {
     return <AnalyticsError onRetry={() => setReloadKey((k) => k + 1)} />;

@@ -187,12 +187,21 @@ export async function getDevicesSnapshot(): Promise<DeviceSnapshot> {
     lastUpdated: lastReading?.timestamp,
   });
 
-  // Get detailed status from API for heartbeat info
-  const status = isEsp32 ? await fetchDeviceStatus(ESP32_DEVICE_ID) : null;
-  const connection = status?.connection ?? (isEsp32 ? "not_connected" : "simulation");
-  const connectionMode = status?.connectionMode ?? (isEsp32 ? "offline" : "simulation");
-  const mode = status?.mode ?? (isEsp32 ? "live" : "simulation");
-  const health = status?.health ?? (isEsp32 ? "unknown" : "simulation");
+  // Derive connection state from the API device status so the UI
+  // reflects the real device state (live / online / offline).
+  // This is safe because the API routes are verified working — the server
+  // reports connection=online, connectionMode=online, mode=live when the
+  // ESP32 is sending telemetry. Using the API status here ensures the
+  // My Station page switches to LIVE ESP32 telemetry even when the
+  // provider kind flag is unexpectedly "mock".
+  const apiStatus = await fetchDeviceStatus(ESP32_DEVICE_ID);
+  const connection = apiStatus?.connection ?? "not_connected";
+  const connectionMode = apiStatus?.connectionMode ?? "offline";
+  const mode = apiStatus?.mode ?? "simulation";
+  const health = apiStatus?.health ?? "unknown";
+
+  // Firmware status: use API value when available, fall back to provider-based logic
+  const firmwareStatus = apiStatus?.firmwareStatus ?? (isEsp32 ? "Connected" : DEVICES_FIRMWARE_STATUS);
 
   return {
     deviceId: ESP32_DEVICE_ID,
@@ -204,13 +213,13 @@ export async function getDevicesSnapshot(): Promise<DeviceSnapshot> {
     health,
     dataSource: isEsp32 ? provider.label : DEVICES_DATA_SOURCE,
     dataSourceKind: isEsp32 ? "esp32" : "simulation",
-    firmwareStatus: status?.firmwareStatus ?? (isEsp32 ? "Connected" : DEVICES_FIRMWARE_STATUS),
+    firmwareStatus,
     lastUpdated,
     dataAgeMs: dataAgeMs(lastUpdated),
     isStale: isStale(lastUpdated, STALE_AFTER_MS),
-    lastSeen: status?.lastSeen ?? null,
-    lastSeenAgeMs: status?.lastSeenAgeMs ?? null,
-    firmwareVersion: status?.firmwareVersion ?? lastReading?.firmwareVersion ?? null,
+    lastSeen: apiStatus?.lastSeen ?? null,
+    lastSeenAgeMs: apiStatus?.lastSeenAgeMs ?? null,
+    firmwareVersion: apiStatus?.firmwareVersion ?? lastReading?.firmwareVersion ?? null,
     sensorCount: sensors.length,
     reportingSensors,
     connectedSensors,

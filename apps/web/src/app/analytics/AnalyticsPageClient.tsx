@@ -199,7 +199,7 @@ export default function AnalyticsPageClient() {
                   )}
                 </span>
               </span>
-              {result.dataSource !== "esp32" && (
+              {!bannerIsLive && (
                 <span className="text-xs text-muted-foreground">Simulated environmental data · ESP32 not connected</span>
               )}
             </div>

@@ -171,7 +171,7 @@ export default function AnalyticsPageClient() {
 
   const quality = result.readings[0]?.dataQuality ?? "simulated";
   const isEsp32 = result.dataSource === "esp32";
-  const badgeClass = isEsp32 ? "badge badge-success" : "badge badge-warning";
+  const badgeClass = bannerIsLive ? "badge badge-success" : "badge badge-warning";
   const badgeLabel = isEsp32 ? "LIVE ESP32 Telemetry" : "Simulation Mode";
 
   return (

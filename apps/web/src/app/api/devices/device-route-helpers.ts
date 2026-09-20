@@ -76,9 +76,12 @@ export async function historyResponse(
       deviceId,
       count: readings.length,
       readings,
-      note: "ESP32 is NOT connected; this list is empty until real hardware reports readings.",
+      note: readings.length === 0
+        ? "ESP32 is NOT connected; this list is empty until real hardware reports readings."
+        : "ESP32 is NOT connected; this list contains stored readings from previous sessions.",
     });
   } catch (error) {
+    console.error("[historyResponse] Error reading stored readings:", error);
     return NextResponse.json(
       {
         ok: false,

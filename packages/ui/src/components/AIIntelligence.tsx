@@ -53,24 +53,41 @@ export const AIIntelligence: FC<AIIntelligenceProps> = ({
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
-    
+
     const userMessage = input;
     setInput("");
     setMessages((prev) => [...prev, { id: Date.now().toString(), role: "user", content: userMessage }]);
     setIsLoading(true);
 
-    setTimeout(() => {
-      const responses = [
-        "Based on current conditions, I'd recommend outdoor activities before 10 AM when air quality is best.",
-        "The UV index is very high today (9). Please apply SPF 50+ sunscreen and limit direct sun exposure between 11 AM - 3 PM.",
-        "Air quality has improved to 'Good' over the past 3 days. Great time for your morning run!",
-        "Temperature will peak at 35°C today. Stay hydrated and seek shade during peak hours.",
-        "Humidity is at 65% - consider using a dehumidifier indoors for comfort.",
-      ];
-      const response = responses[Math.floor(Math.random() * responses.length)];
-      setMessages((prev) => [...prev, { id: (Date.now() + 1).toString(), role: "assistant", content: response }]);
+    try {
+      const res = await fetch("/api/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: userMessage, context: messages }),
+        cache: "no-store",
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error ?? "AI chat error");
+      }
+
+      setMessages((prev) => [...prev, { id: (Date.now() + 1).toString(), role: "assistant", content: data.response }]);
+    } catch (err) {
+      console.error("AI chat failed:", err);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
+  };
+
+  const handleClearChat = () => {
+    setMessages([
+      {
+        id: "1",
+        role: "assistant",
+        content: "Hello! I'm your environmental AI assistant. Ask me about air quality, weather, activity recommendations, or anything else!",
+      },
+    ]);
   };
 
   return (
@@ -220,6 +237,18 @@ export const AIIntelligence: FC<AIIntelligenceProps> = ({
               </button>
             )}
           </div>
+          <button
+            onClick={handleClearChat}
+            disabled={isLoading}
+            className="btn-secondary"
+            aria-label="Clear chat"
+          >
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <X className="w-4 h-4" />
+            )}
+          </button>
           <button
             onClick={handleSend}
             disabled={!input.trim() || isLoading}

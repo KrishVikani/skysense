@@ -609,7 +609,7 @@ export function generateEnvironmentalIntelligence(analytics: AnalyticsResult): A
   return {
     generatedAt: new Date().toISOString(),
     location,
-    dataSource: INTELLIGENCE_SOURCE,
+    dataSource: analytics.dataSource,
     dataAgeMinutes,
     sampleCount: readings.length,
     range: analytics.range,

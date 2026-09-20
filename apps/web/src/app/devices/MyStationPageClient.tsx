@@ -22,7 +22,7 @@ function MyStationSkeleton() {
   return (
     <div role="status" aria-busy="true" className="space-y-6 animate-in lg:space-y-8">
       <div className="h-7 w-48 skeleton-shimmer rounded-lg" />
-      <div className="h-4 w-80 max-w-full skeleton-shimmer rounded mt-2" />
+      <div className="h-4 w-80 max-w-full skeleton-shimmer mt-2" />
       <div className="h-80 rounded-[2rem] skeleton-shimmer" />
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {Array.from({ length: 8 }).map((_, i) => (
@@ -57,7 +57,6 @@ function MyStationError({ onRetry }: { onRetry: () => void }) {
 
 export default function MyStationPageClient() {
   const [snapshot, setSnapshot] = useState<DeviceSnapshot | null>(null);
-  const [previousSnapshot, setPreviousSnapshot] = useState<DeviceSnapshot | null>(null);
   const [analytics, setAnalytics] = useState<AnalyticsResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasLoaded, setHasLoaded] = useState(false);
@@ -83,10 +82,9 @@ export default function MyStationPageClient() {
     setError(false);
     setRefreshing(true);
 
-    Promise.all([getDevicesSnapshot(previousSnapshot), getEnvironmentalAnalytics("24h")])
+    Promise.all([getDevicesSnapshot(null), getEnvironmentalAnalytics("24h")])
       .then(([nextSnapshot, nextAnalytics]) => {
         if (cancelled) return;
-        setPreviousSnapshot(snapshot);
         setSnapshot(withDisplayUnits(nextSnapshot, settings.units));
         setAnalytics(nextAnalytics);
         setHasLoaded(true);
@@ -109,7 +107,7 @@ export default function MyStationPageClient() {
     return () => {
       cancelled = true;
     };
-  }, [reloadKey, settings.units, snapshot, previousSnapshot]);
+  }, [reloadKey, settings.units]);
 
   // LIVE REFRESH: poll the snapshot at the user-configured interval (bounded in
   // Settings). Paused while the tab is hidden and skipped when a request is in

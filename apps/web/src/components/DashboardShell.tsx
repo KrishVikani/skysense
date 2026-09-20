@@ -7,6 +7,7 @@ import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { MobileNavigation } from "./MobileNavigation";
 import { MobileBottomNav } from "./MobileBottomNav";
+import { AIAssistant } from "./AIAssistant";
 
 interface DashboardShellProps {
   children: React.ReactNode;
@@ -41,6 +42,8 @@ export function DashboardShell({ children, atmosphere }: DashboardShellProps) {
       >
         <div className="mx-auto w-full max-w-7xl p-4 lg:p-6 lg:pb-8">{children}</div>
       </motion.main>
+
+      <AIAssistant />
     </div>
   );
 }

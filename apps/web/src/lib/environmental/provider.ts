@@ -129,7 +129,11 @@ export class Esp32DataSourceProvider implements DataSourceProvider {
       `/api/devices/${this.deviceId}/data/history?max=${maxPoints}`
     );
 
-    if (!data.ok || !data.readings || data.readings.length === 0) {
+    if (!data.ok) {
+      return [];
+    }
+
+    if (!data.readings || data.readings.length === 0) {
       return [];
     }
 

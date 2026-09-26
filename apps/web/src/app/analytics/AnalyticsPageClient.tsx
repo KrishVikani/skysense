@@ -8,8 +8,7 @@ import { EmptyState } from "@skysense/ui";
 import { TimeRangeSelector } from "@/components/analytics/TimeRangeSelector";
 import { SummaryCards } from "@/components/analytics/SummaryCards";
 import { MetricExplorer } from "@/components/analytics/MetricExplorer";
-import { WindAnalytics } from "@/components/analytics/WindAnalytics";
-import { UvAirQuality } from "@/components/analytics/UvAirQuality";
+import { UvRainSection } from "@/components/analytics/UvRainSection";
 import { ScoreSection } from "@/components/analytics/ScoreSection";
 import { InsightsSection } from "@/components/analytics/InsightsSection";
 import { Freshness } from "@/components/analytics/Freshness";
@@ -131,6 +130,27 @@ export default function AnalyticsPageClient() {
     };
   }, []);
 
+  // Auto-refresh device status at a reasonable interval (30s), consistent with the
+  // Devices page poll interval. Cleans up on unmount and skips if a request is in flight.
+  useEffect(() => {
+    let cancelled = false;
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden")
+        return;
+      fetchDeviceStatus(ESP32_DEVICE_ID)
+        .then((status) => {
+          if (!cancelled) setDeviceStatus(status);
+        })
+        .catch(() => {
+          // Best-effort; keep previous state on failure.
+        });
+    }, 30_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
+
   // Determine the live/simulation banner state from the authoritative device status.
   const isDeviceOnline = deviceStatus?.connection === "online";
   const bannerIsLive = isDeviceOnline && deviceStatus?.dataSource === "esp32";
@@ -172,7 +192,7 @@ export default function AnalyticsPageClient() {
   const quality = result.readings[0]?.dataQuality ?? "simulated";
   const isEsp32 = result.dataSource === "esp32";
   const badgeClass = bannerIsLive ? "badge badge-success" : "badge badge-warning";
-  const badgeLabel = isEsp32 ? "LIVE ESP32 Telemetry" : "Simulation Mode";
+  const badgeLabel = isEsp32 ? "LIVE ESP32 Telemetry" : "Device Not Connected";
 
   return (
     <DashboardShell atmosphere="analytics">
@@ -200,7 +220,7 @@ export default function AnalyticsPageClient() {
                 </span>
               </span>
               {!bannerIsLive && (
-                <span className="text-xs text-muted-foreground">Simulated environmental data · ESP32 not connected</span>
+                <span className="text-xs text-muted-foreground">ESP32 is offline — live telemetry unavailable</span>
               )}
             </div>
           </div>
@@ -222,14 +242,13 @@ export default function AnalyticsPageClient() {
           onMetricChange={setActiveMetric}
         />
 
-        <WindAnalytics data={result.readings} range={range} wind={result.wind} />
-
-        <UvAirQuality
-          uv={result.summary.uvIndex}
-          aqi={result.summary.airQuality}
-          uvRisk={result.uvRisk}
-          aqiCategory={result.aqiCategory}
-        />
+        {bannerIsLive && (
+          <UvRainSection
+            uv={result.summary.uvIndex}
+            uvRisk={result.uvRisk}
+            rainfall={result.summary.rainfall}
+          />
+        )}
 
         <ScoreSection score={result.score} />
 

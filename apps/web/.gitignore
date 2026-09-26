@@ -47,5 +47,11 @@ coverage/
 # Vercel
 .vercel
 
+# Service-account keys (never commit these)
+*service-account*.json
+*serviceAccount*.json
+firebase-adminsdk*.json
+skysense-5084d-firebase-adminsdk-fbsvc-a7adffde82.json
+
 # Misc
 *.pem

@@ -49,7 +49,7 @@ interface SidebarProps {
 
 function NavLink({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
   const pathname = usePathname();
-  const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
+  const isActive = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
   const Icon = item.icon;
 
   return (
@@ -65,14 +65,6 @@ function NavLink({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
       aria-current={isActive ? "page" : undefined}
       title={collapsed ? item.name : undefined}
     >
-      {isActive && (
-        <motion.span
-          layoutId="sidebar-active"
-          className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-accent"
-          transition={{ type: "spring", stiffness: 420, damping: 34 }}
-          aria-hidden="true"
-        />
-      )}
       {item.featured ? (
         <span
           className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-all duration-200 ${
@@ -93,14 +85,6 @@ function NavLink({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
       )}
       {!collapsed && (
         <span className="whitespace-nowrap text-sm font-medium">{item.name}</span>
-      )}
-      {isActive && !collapsed && (
-        <motion.span
-          className="ml-auto h-1.5 w-1.5 rounded-full bg-accent"
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          aria-hidden="true"
-        />
       )}
     </Link>
   );

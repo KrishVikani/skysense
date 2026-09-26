@@ -16,6 +16,8 @@ const navigation = [
 export function MobileBottomNav() {
   const pathname = usePathname();
 
+  if (!pathname) return null;
+
   return (
     <motion.nav
       className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-card/95 backdrop-blur-xl border-t border-border"

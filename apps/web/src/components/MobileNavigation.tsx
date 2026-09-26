@@ -57,6 +57,8 @@ export function MobileNavigation({ isOpen, onClose }: { isOpen: boolean; onClose
     };
   }, [isOpen, onClose]);
 
+  if (!pathname) return null;
+
   return (
     <AnimatePresence>
       {isOpen && (

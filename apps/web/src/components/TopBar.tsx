@@ -15,9 +15,10 @@ import { timeAgo } from "./alerts/format";
 
 interface TopBarProps {
   onMenuClick: () => void;
+  sidebarCollapsed: boolean;
 }
 
-export function TopBar({ onMenuClick }: TopBarProps) {
+export function TopBar({ onMenuClick, sidebarCollapsed }: TopBarProps) {
   const { theme, toggleTheme } = useTheme();
   const { location } = useLocation();
   const { user, signOut } = useAuth();
@@ -83,7 +84,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-[500] h-16 bg-card/80 backdrop-blur-xl border-b border-border flex items-center justify-between px-4 lg:px-6">
-      <div className="flex items-center gap-4">
+      <div className={`flex items-center gap-4 ${sidebarCollapsed ? "lg:ml-16" : "lg:ml-64"}`}>
         <button
           onClick={onMenuClick}
           className="lg:hidden btn-icon"
@@ -123,7 +124,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
           {notificationsOpen && (
             <motion.div
               id="topbar-notifications-panel"
-              className="fixed inset-x-3 top-[4.75rem] sm:absolute sm:inset-x-auto sm:top-full sm:mt-2 sm:w-80 card-elevated shadow-xl py-2"
+              className="fixed top-[4.75rem] right-4 left-auto w-full max-w-80 sm:max-w-80 card-elevated shadow-xl py-2"
               initial={{ opacity: 0, y: 10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.2 }}

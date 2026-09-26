@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
-import { fetchDeviceStatus } from "@/lib/devices/service";
+import { getDeviceHeartbeat, getLatestDeviceReading } from "@/lib/devices/storage";
+import { deriveConnectionState } from "@/lib/devices/heartbeat";
 import { ESP32_DEVICE_ID } from "@/lib/devices/contract";
 
 import type { NextRequest } from "next/server";
@@ -25,7 +26,7 @@ For questions unrelated to SKYSENSE environmental data (such as programming, cod
 
 Do not claim to be a professional meteorologist or medical professional.
 
-When the user asks about dangerous environmental conditions, provide sensible safety guidance without overstating certainty.
+When discussing dangerous environmental conditions, provide sensible safety guidance without overstating certainty.
 
 Important guidelines:
 - Always ground responses in actual provided data
@@ -45,17 +46,16 @@ type AnalyticsContext = {
   readings: {
     temperature: number;
     humidity: number;
-    windSpeed: number;
+    pressure: number;
     uvIndex: number;
-    airQuality: number;
     rainfall: number;
   }[];
   summary: {
     temperature: { current: number };
     humidity: { current: number };
-    windSpeed: { current: number };
+    pressure: { current: number };
     uvIndex: { current: number };
-    airQuality: { current: number };
+    rainfall: { current: number };
   };
   dataSource: string;
   lastUpdated: string;
@@ -83,17 +83,16 @@ function buildDataContext(
     parts.push(`Current readings:`);
     parts.push(`  Temperature: ${last.temperature} °C`);
     parts.push(`  Humidity: ${last.humidity}%`);
-    parts.push(`  Wind Speed: ${last.windSpeed} km/h`);
-    parts.push(`  UV Index: ${last.uvIndex}`);
-    parts.push(`  Air Quality: ${last.airQuality} AQI`);
-    parts.push(`  Rainfall: ${last.rainfall} mm`);
+    parts.push(`  Pressure: ${last.pressure} hPa`);
+    parts.push(`  UV Index: ${last.uvIndex !== null && last.uvIndex !== undefined ? last.uvIndex : "unavailable"}`);
+    parts.push(`  Rainfall: ${last.rainfall !== null && last.rainfall !== undefined ? last.rainfall : "unavailable"} mm`);
 
     parts.push(`Summary:`);
     parts.push(`  Current temperature: ${analyticsResult.summary.temperature.current} °C`);
     parts.push(`  Current humidity: ${analyticsResult.summary.humidity.current}%`);
-    parts.push(`  Current wind speed: ${analyticsResult.summary.windSpeed.current} km/h`);
-    parts.push(`  Current UV index: ${analyticsResult.summary.uvIndex.current}`);
-    parts.push(`  Current air quality: ${analyticsResult.summary.airQuality.current} AQI`);
+    parts.push(`  Current pressure: ${analyticsResult.summary.pressure.current} hPa`);
+    parts.push(`  Current UV index: ${analyticsResult.summary.uvIndex.current !== null && analyticsResult.summary.uvIndex.current !== undefined ? analyticsResult.summary.uvIndex.current : "unavailable"}`);
+    parts.push(`  Current rainfall: ${analyticsResult.summary.rainfall.current !== null && analyticsResult.summary.rainfall.current !== undefined ? analyticsResult.summary.rainfall.current : "unavailable"} mm`);
     parts.push(`Location: ${analyticsResult.location}`);
     parts.push(`Data source: ${analyticsResult.dataSource}`);
     parts.push(`Last updated: ${analyticsResult.lastUpdated}`);
@@ -132,80 +131,67 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Step 1: Check device status FIRST to determine data source
+    // Step 1: Get authoritative device status from server-side heartbeat.
+    // Uses Firebase Admin SDK directly — no relative URL fetch needed.
     let deviceStatus: DeviceStatusContext | null = null;
     try {
-      const dsRes = await fetch(
-        `/api/devices/${ESP32_DEVICE_ID}/status`,
-        { cache: "no-store" }
-      );
-      if (dsRes.ok) {
-        const dsData = await dsRes.json();
-        if (dsData.ok && dsData.connection === "online") {
-          deviceStatus = {
-            connection: dsData.connection,
-            mode: dsData.mode ?? "live",
-            dataSource: dsData.dataSource,
-            lastSeen: dsData.lastSeen,
+      const heartbeat = await getDeviceHeartbeat(ESP32_DEVICE_ID);
+      if (heartbeat) {
+        const connection = deriveConnectionState(heartbeat.lastSeenAt);
+        deviceStatus = {
+          connection,
+          mode: "live",
+          dataSource: heartbeat.dataSource,
+          lastSeen: heartbeat.lastSeenAt,
+        };
+      }
+    } catch (e) {
+      console.error("Failed to get device heartbeat:", e);
+    }
+
+    // Step 2: Retrieve authoritative latest ESP32 telemetry if device is online.
+    // Uses Firestore read directly — no relative URL fetch needed.
+    let analyticsResult: AnalyticsContext | null = null;
+    try {
+      if (deviceStatus && deviceStatus.dataSource === "esp32" && deviceStatus.connection === "online") {
+        const latestReading = await getLatestDeviceReading(ESP32_DEVICE_ID);
+        if (latestReading) {
+          const last = {
+            temperature: latestReading.temperature ?? 0,
+            humidity: latestReading.humidity ?? 0,
+            pressure: latestReading.pressure ?? 0,
+            uvIndex: latestReading.uvIndex ?? 0,
+            rainfall: latestReading.rainfall ?? 0,
+            timestamp: latestReading.timestamp,
+            deviceId: latestReading.deviceId,
+            location: latestReading.location,
+          };
+          analyticsResult = {
+            readings: [last],
+            summary: {
+              temperature: { current: last.temperature },
+              humidity: { current: last.humidity },
+              pressure: { current: last.pressure },
+              uvIndex: { current: last.uvIndex },
+              rainfall: { current: last.rainfall },
+            },
+            dataSource: "esp32",
+            lastUpdated: last.timestamp,
+            location: last.location,
           };
         }
       }
     } catch (e) {
-      console.error("Failed to fetch device status:", e);
+      console.error("Failed to get latest device reading:", e);
     }
 
-    // Step 2: Attempt to fetch real ESP32 telemetry if device status is online
-    // If device is not online, we will fall back to mock environmental data
-    let analyticsResult: AnalyticsContext | null = null;
-
-    try {
-      // Only fetch telemetry if device status shows online with esp32 dataSource
-      if (deviceStatus && deviceStatus.dataSource === "esp32") {
-        const latestRes = await fetch(
-          `/api/devices/${ESP32_DEVICE_ID}/data/latest`,
-          { cache: "no-store" }
-        );
-        if (latestRes.ok) {
-          const latestData = await latestRes.json();
-          if (latestData.ok && latestData.reading) {
-            // Use the latest reading as the summary
-            const last = latestData.reading;
-
-            analyticsResult = {
-              readings: [last],
-              summary: {
-                temperature: { current: last.temperature },
-                humidity: { current: last.humidity },
-                windSpeed: { current: last.windSpeed },
-                uvIndex: { current: last.uvIndex },
-                airQuality: { current: last.airQuality },
-              },
-              dataSource: "esp32",
-              lastUpdated: last.timestamp,
-              location: last.location,
-            };
-          }
-        }
-      }
-    } catch (e) {
-      console.error("Failed to fetch ESP32 telemetry:", e);
-    }
-
-    // Step 3: Fall back to environmental data only if device is genuinely offline
+    // Step 3: If device is genuinely offline/unavailable, do NOT fabricate simulated telemetry.
     // If device is online with esp32, we already have analyticsResult from Step 2.
-    // If device is not online, we do NOT use simulated data - we mark as unavailable.
-    // This ensures the chatbot and /devices page agree on the same device state.
+    // If device is not online, we mark as unavailable (no simulated data).
     if (!analyticsResult) {
-      // Device is not online with esp32 - check if we should fall back to mock data
-      // ONLY fall back if deviceStatus exists but is not online (e.g., stale or offline)
-      // If deviceStatus is null or connection is not "online", do NOT use simulated data
       if (deviceStatus && deviceStatus.connection !== "online") {
-        // Device is stale or offline - still do NOT use simulated data
-        // The Gemini instruction says: "If data source is 'simulated', say so explicitly"
-        // and "If data is unavailable, say 'unavailable' rather than guessing"
         analyticsResult = null;
       } else if (!deviceStatus) {
-        // No device status available - treat as unavailable
         analyticsResult = null;
       }
     }

@@ -1,6 +1,8 @@
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import AIIntelligenceClient from "./AIIntelligenceClient";
 
+export const dynamic = "force-dynamic";
+
 export default function AIIntelligencePage() {
   return (
     <ProtectedRoute>

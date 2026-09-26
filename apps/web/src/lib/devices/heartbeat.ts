@@ -27,10 +27,10 @@ import type { DeviceConnectionState } from "./types";
  * scattered magic numbers.
  */
 
-/** Default window after which a connected device is considered STALE (5 min). */
-export const HEARTBEAT_STALE_AFTER_MS_DEFAULT = 5 * 60 * 1000;
-/** Default window after which a stale device is considered OFFLINE (15 min). */
-export const HEARTBEAT_OFFLINE_AFTER_MS_DEFAULT = 15 * 60 * 1000;
+/** Default window after which a connected device is considered STALE (2 min). */
+export const HEARTBEAT_STALE_AFTER_MS_DEFAULT = 2 * 60 * 1000;
+/** Default window after which a stale device is considered OFFLINE (2 min for UI). */
+export const HEARTBEAT_OFFLINE_AFTER_MS_DEFAULT = 2 * 60 * 1000;
 
 export const HEARTBEAT_STALE_AFTER_ENV = "SKYSENSE_DEVICE_STALE_AFTER_MS";
 export const HEARTBEAT_OFFLINE_AFTER_ENV = "SKYSENSE_DEVICE_OFFLINE_AFTER_MS";
@@ -117,6 +117,9 @@ export function isHeartbeatOffline(
  * Derives the device connection state from the last heartbeat.
  * `null`/missing means no telemetry has ever been received → `not_connected`
  * (a device is never called online without a real heartbeat).
+ * 
+ * For UI purposes: online if heartbeat < 120s, offline if >= 120s.
+ * Internal "stale" state is kept for potential future use but not exposed to UI.
  */
 export function deriveConnectionState(
   lastSeenAt: string | null | undefined,
@@ -125,7 +128,6 @@ export function deriveConnectionState(
   if (!lastSeenAt) return "not_connected";
   const age = heartbeatAgeMs(lastSeenAt, now);
   if (age <= getStaleAfterMs()) return "online";
-  if (age <= getOfflineAfterMs()) return "stale";
   return "offline";
 }
 

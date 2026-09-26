@@ -15,15 +15,17 @@ interface TelemetryMetric {
 }
 
 /**
- * The four metrics the My Station telemetry chart lets the user explore.
+ * The three metrics the My Station telemetry chart lets the user explore.
  * History comes exclusively from the existing environmental provider's 24h
  * deterministic series — nothing is fabricated here.
+ * Wind is excluded because the real ESP32 hardware does not measure it.
+ * Pressure is included as it is a core ESP32 sensor.
+ * UV Index and Rain Detection are excluded when no historical values exist.
  */
 const METRICS: TelemetryMetric[] = [
   { key: "temperature", label: "Temperature", color: "var(--color-sun)", formatter: (v) => `${v.toFixed(1)}°C` },
   { key: "humidity", label: "Humidity", color: "var(--color-sky)", formatter: (v) => `${v.toFixed(0)}%` },
-  { key: "windSpeed", label: "Wind", color: "var(--color-accent)", formatter: (v) => `${v.toFixed(1)} km/h` },
-  { key: "uvIndex", label: "UV Index", color: "var(--color-warning)", formatter: (v) => `${v.toFixed(1)}` },
+  { key: "pressure", label: "Pressure", color: "var(--color-muted)", formatter: (v) => `${v.toFixed(1)} hPa` },
 ];
 
 const TREND_COLORS = {
@@ -166,8 +168,8 @@ export function StationTelemetry({ analytics }: { analytics: AnalyticsResult }) 
           <Activity className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
           History comes from the deterministic simulated data feed · ESP32 hardware is not connected
         </p>
-        </div>
       </div>
+    </div>
     </motion.section>
   );
 }

@@ -2,7 +2,11 @@
 
 import { motion } from "framer-motion";
 import { Activity, Minus, TrendingDown, TrendingUp } from "lucide-react";
-import type { DeviceSnapshot, SensorInfo, SensorKey } from "@/lib/devices/types";
+import type {
+  DeviceSnapshot,
+  SensorInfo,
+  SensorKey,
+} from "@/lib/devices/types";
 import { formatAge } from "@/lib/devices/quality";
 import type { EnvironmentalReading, MetricKey, MetricSummary } from "@/lib/environmental/types";
 import { compassLabel } from "@/lib/weather/conditions";
@@ -10,18 +14,24 @@ import { SENSOR_ACCENTS, SENSOR_ICONS } from "./severity";
 import { SectionHeader } from "@/components/SectionHeader";
 
 /**
- * Sensor-to-metric mapping for trend summaries. Every sensor the simulation
- * supports maps to an Analytics metric except `windDirection`, which has no
- * trend summary (direction is shown as a compass label instead).
+ * Software → hardware mapping for the future SKYSENSE ESP32 station.
+ *
+ * ONLY the five sensors the real ESP32 hardware supports:
+ *   - temperature
+ *   - humidity
+ *   - pressure
+ *   - uvIndex (light intensity / UV)
+ *   - rainfall (rain detection)
+ *
+ * Wind speed, wind direction, air quality, and AQI are NOT measured by the
+ * actual hardware and are excluded from this grid.
  */
 const TREND_KEYS: Partial<Record<SensorKey, MetricKey>> = {
   temperature: "temperature",
   humidity: "humidity",
   pressure: "pressure",
-  airQuality: "airQuality",
   uvIndex: "uvIndex",
   rainfall: "rainfall",
-  windSpeed: "windSpeed",
 };
 
 const TREND_COLOR: Record<MetricSummary["trend"], string> = {
@@ -30,7 +40,14 @@ const TREND_COLOR: Record<MetricSummary["trend"], string> = {
   stable: "var(--color-muted)",
 };
 
-function TrendIndicator({ summary }: { summary: MetricSummary }) {
+function TrendIndicator({ summary }: { summary: MetricSummary | undefined }) {
+  if (!summary) {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium">
+        —
+      </span>
+    );
+  }
   const color = TREND_COLOR[summary.trend];
   const Icon = summary.trend === "up" ? TrendingUp : summary.trend === "down" ? TrendingDown : Minus;
   const text =
@@ -50,23 +67,39 @@ function TrendIndicator({ summary }: { summary: MetricSummary }) {
   );
 }
 
+/**
+ * Maps a sensor key to whether it's supported by the real ESP32 hardware.
+ * Only the five supported sensors are rendered in the grid.
+ */
+function isEsp32SupportedSensor(key: SensorKey): boolean {
+  return [
+    "temperature",
+    "humidity",
+    "pressure",
+    "uvIndex",
+    "rainfall",
+  ].includes(key);
+}
+
 function SensorCard({
   sensor,
   summary,
-  windDirection,
   index,
   isLive,
 }: {
   sensor: SensorInfo;
-  summary: MetricSummary | undefined;
-  windDirection: number;
+  summary?: Record<MetricKey, MetricSummary> | undefined;
   index: number;
   isLive: boolean;
 }) {
   const Icon = SENSOR_ICONS[sensor.key];
   const accent = SENSOR_ACCENTS[sensor.key];
   const trendKey = TREND_KEYS[sensor.key];
-  const isWindDirection = sensor.key === "windDirection";
+
+  // Skip rendering unsupported sensors (wind, windDirection, airQuality)
+  if (!trendKey) {
+    return null;
+  }
 
   return (
     <motion.div
@@ -104,12 +137,8 @@ function SensorCard({
           )}
         </div>
         <div className="pb-0.5 text-right">
-          {isWindDirection ? (
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground">
-              From {compassLabel(windDirection)}
-            </span>
-          ) : summary && trendKey ? (
-            <TrendIndicator summary={summary} />
+          {trendKey ? (
+            <TrendIndicator summary={summary ? summary[trendKey] : undefined} />
           ) : (
             <span className="text-xs text-muted-foreground">—</span>
           )}
@@ -123,6 +152,12 @@ function SensorCard({
  * Live sensor summary: a clean, readable grid of the station's supported
  * sensors (icon, current value, unit, trend and last-updated context).
  * Shows live ESP32 data when connected, simulated data when not.
+ * Only renders the five sensors the real ESP32 hardware supports:
+ *   - temperature
+ *   - humidity
+ *   - pressure
+ *   - uvIndex (light intensity / UV)
+ *   - rainfall (rain detection)
  */
 export function StationSensorGrid({
   snapshot,
@@ -152,14 +187,13 @@ export function StationSensorGrid({
           : "Current measurements from your station · values shown are simulated"}
       />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {snapshot.sensors.map((sensor, index) => {
+        {snapshot.sensors.filter((sensor): sensor is SensorInfo => isEsp32SupportedSensor(sensor.key)).map((sensor, index) => {
           const trendKey = TREND_KEYS[sensor.key];
           return (
             <SensorCard
               key={sensor.key}
               sensor={sensor}
-              summary={trendKey ? summary[trendKey] : undefined}
-              windDirection={reading.windDirection}
+              summary={summary}
               index={index}
               isLive={isLive}
             />

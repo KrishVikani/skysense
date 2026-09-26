@@ -146,6 +146,33 @@ export default function AIIntelligenceClient() {
     };
   }, []);
 
+  // Auto-refresh device status at a reasonable interval (30s), consistent with the
+  // Devices page poll interval. Cleans up on unmount and skips if a request is in flight.
+  useEffect(() => {
+    let cancelled = false;
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden")
+        return;
+      fetchDeviceStatus(ESP32_DEVICE_ID)
+        .then((ds) => {
+          if (!cancelled) {
+            setDeviceStatus({
+              connection: ds?.connection ?? null,
+              dataSource: ds?.dataSource ?? null,
+              lastSeen: ds?.lastSeen ?? null,
+            });
+          }
+        })
+        .catch(() => {
+          // Best-effort; keep previous state on failure.
+        });
+    }, 30_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);

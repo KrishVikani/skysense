@@ -10,7 +10,13 @@ import { StationSensorGrid } from "@/components/devices/StationSensorGrid";
 import { StationSensorHealth } from "@/components/devices/StationSensorHealth";
 import { StationTelemetry } from "@/components/devices/StationTelemetry";
 import { StationHardwareStatus } from "@/components/devices/StationHardwareStatus";
-import { getDevicesSnapshot, DEVICES_POLL_INTERVAL_MS } from "@/lib/devices/service";
+import {
+  getDevicesSnapshot,
+  DEVICES_POLL_INTERVAL_MS,
+} from "@/lib/devices/service";
+import { deriveConnectionState } from "@/lib/devices/heartbeat";
+import { getDeviceHeartbeat } from "@/lib/devices/storage";
+import { ESP32_DEVICE_ID } from "@/lib/devices/contract";
 import { getEnvironmentalAnalytics } from "@/lib/environmental/service";
 import { formatAge } from "@/lib/devices/quality";
 import { withDisplayUnits } from "@/lib/settings/units";
@@ -73,6 +79,7 @@ export default function MyStationPageClient() {
 
   const refresh = () => {
     announceNextRef.current = true;
+    setRefreshing(true);
     setReloadKey((k) => k + 1);
   };
 
@@ -113,12 +120,16 @@ export default function MyStationPageClient() {
   // Settings). Paused while the tab is hidden and skipped when a request is in
   // flight, so My Station never hammers the data layer.
   useEffect(() => {
+    let cancelled = false;
     const interval = setInterval(() => {
       if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
       if (inFlightRef.current) return;
       setReloadKey((k) => k + 1);
     }, pollIntervalMs);
-    return () => clearInterval(interval);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, [pollIntervalMs]);
 
   if (error && !hasLoaded) {

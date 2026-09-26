@@ -20,9 +20,9 @@ const METRICS: Array<{
 }> = [
   { key: "temperature", label: "Temperature", color: "var(--color-sun)", formatter: (v) => `${v.toFixed(1)}°C` },
   { key: "humidity", label: "Humidity", color: "var(--color-sky)", formatter: (v) => `${v.toFixed(0)}%` },
-  { key: "windSpeed", label: "Wind", color: "var(--color-accent)", formatter: (v) => `${v.toFixed(1)} km/h` },
+  { key: "pressure", label: "Pressure", color: "var(--color-muted)", formatter: (v) => `${v.toFixed(1)} hPa` },
   { key: "uvIndex", label: "UV Index", color: "var(--color-warning)", formatter: (v) => `${v.toFixed(1)}` },
-  { key: "airQuality", label: "Air Quality", color: "var(--color-info)", formatter: (v) => `${v.toFixed(0)} AQI` },
+  { key: "rainfall", label: "Rainfall", color: "var(--color-accent)", formatter: (v) => `${v.toFixed(1)} mm` },
 ];
 
 const TREND_COLORS = {

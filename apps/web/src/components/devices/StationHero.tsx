@@ -30,6 +30,13 @@ function StatTile({ icon, label, value }: { icon: ReactNode; label: string; valu
  * "here is what my station is measuring right now". Identity, current condition
  * and the large temperature dominate; the simulation/hardware state stays
  * visible but honest. All values come from the existing snapshot/reading.
+ * Only shows sensors the real ESP32 hardware supports:
+ *   - Temperature
+ *   - Humidity
+ *   - Pressure
+ *   - UV Index / Light Intensity
+ *   - Rain Detection
+ * Wind, Air Quality, and AQI are NOT measured by the actual hardware.
  */
 export function StationHero({
   snapshot,
@@ -42,23 +49,21 @@ export function StationHero({
 
   const temp = sensor("temperature");
   const humidity = sensor("humidity");
-  const wind = sensor("windSpeed");
+  const pressure = sensor("pressure");
   const uv = sensor("uvIndex");
-  const aqi = sensor("airQuality");
+  const rainfall = sensor("rainfall");
 
   const condition = conditionFromReading(reading);
   const tempValue = temp ? Math.round(temp.value ?? reading.temperature) : Math.round(reading.temperature);
   const tempUnit = temp?.unit ?? "°C";
   const humidityLabel = humidity ? `${humidity.valueLabel}%` : `${Math.round(reading.humidity)}%`;
-  const windLabel = wind
-    ? `${wind.valueLabel}${wind.unit && !wind.valueLabel.includes(wind.unit) ? ` ${wind.unit}` : ""} · ${compassLabel(reading.windDirection)}`
-    : `${reading.windSpeed.toFixed(1)} km/h`;
+  const pressureLabel = pressure ? `${pressure.valueLabel} hPa` : "—";
   const uvLabel = uv
     ? `${uv.valueLabel} · ${uvRiskOf(reading.uvIndex)}`
     : `${reading.uvIndex.toFixed(1)} · ${uvRiskOf(reading.uvIndex)}`;
-  const aqiLabel = aqi
-    ? `${aqi.valueLabel} · ${aqiCategoryOf(reading.airQuality)}`
-    : `${Math.round(reading.airQuality)} · ${aqiCategoryOf(reading.airQuality)}`;
+  const rainfallLabel = rainfall
+    ? `${rainfall.valueLabel}${rainfall.unit && !rainfall.valueLabel.includes(rainfall.unit) ? ` ${rainfall.unit}` : ""}`
+    : "—";
 
   return (
     <motion.section
@@ -115,16 +120,11 @@ export function StationHero({
             </p>
           </div>
 
-          <div className="grid w-full max-w-md grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid w-full max-w-md grid-cols-1 gap-3 sm:grid-cols-3">
             <StatTile
               icon={<Droplets className="h-5 w-5 text-sky-200" aria-hidden="true" />}
               label="Humidity"
               value={humidityLabel}
-            />
-            <StatTile
-              icon={<Wind className="h-5 w-5 text-sky-200" aria-hidden="true" />}
-              label="Wind"
-              value={windLabel}
             />
             <StatTile
               icon={<Sun className="h-5 w-5 text-amber-200" aria-hidden="true" />}
@@ -133,8 +133,8 @@ export function StationHero({
             />
             <StatTile
               icon={<Leaf className="h-5 w-5 text-emerald-200" aria-hidden="true" />}
-              label="Air Quality"
-              value={aqiLabel}
+              label="Rain Detection"
+              value={rainfallLabel}
             />
           </div>
         </div>

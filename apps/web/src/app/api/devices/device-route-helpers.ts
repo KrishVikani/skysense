@@ -115,47 +115,59 @@ export async function statusResponse(deviceId: string): Promise<NextResponse> {
     storageAvailable = false;
   }
 
+  const noStoreHeaders = {
+    "Cache-Control": "no-store, no-cache, must-revalidate",
+    Pragma: "no-cache",
+    Expires: "0",
+  };
+
   if (storedHeartbeat) {
     const connection = deriveConnectionState(storedHeartbeat.lastSeenAt);
     const connectionMode =
       connection === "online" ? "online" : connection === "stale" || connection === "offline" ? "offline" : "simulation";
-    return NextResponse.json({
-      ok: true,
-      deviceId,
-      connection,
-      connectionMode,
-      mode: "live",
-      dataSource: "esp32",
-      dataSourceLabel: "ESP32 device telemetry",
-      firmwareStatus: connection === "online" ? "Connected" : "Disconnected",
-      firmwareVersion: storedHeartbeat.firmwareVersion ?? null,
-      lastSeen: storedHeartbeat.lastSeenAt,
-      sensorCount: storedHeartbeat.sensorCount,
-      healthySensorCount: storedHeartbeat.healthySensorCount,
-      operatingMode: storedHeartbeat.operatingMode,
-      heartbeat: storedHeartbeat,
-      note: "Device state derived from the most recent received telemetry/heartbeat.",
-    });
+    return NextResponse.json(
+      {
+        ok: true,
+        deviceId,
+        connection,
+        connectionMode,
+        mode: "live",
+        dataSource: "esp32",
+        dataSourceLabel: "ESP32 device telemetry",
+        firmwareStatus: connection === "online" ? "Connected" : "Disconnected",
+        firmwareVersion: storedHeartbeat.firmwareVersion ?? null,
+        lastSeen: storedHeartbeat.lastSeenAt,
+        sensorCount: storedHeartbeat.sensorCount,
+        healthySensorCount: storedHeartbeat.healthySensorCount,
+        operatingMode: storedHeartbeat.operatingMode,
+        heartbeat: storedHeartbeat,
+        note: "Device state derived from the most recent received telemetry/heartbeat.",
+      },
+      { headers: noStoreHeaders }
+    );
   }
 
-  return NextResponse.json({
-    ok: true,
-    deviceId,
-    connection: "not_connected",
-    connectionMode: "simulation",
-    mode: "simulation",
-    dataSource: "simulation",
-    dataSourceLabel: "Simulated environmental data",
-    firmwareStatus: "Not connected",
-    firmwareVersion: null,
-    lastSeen: null,
-    sensorCount: SENSOR_KEYS.length,
-    healthySensorCount: 0,
-    operatingMode: "simulation",
-    heartbeat: null,
-    storageAvailable,
-    note: storageAvailable
-      ? "ESP32 is NOT connected — no telemetry/heartbeat has ever been received for this device. State stays Simulation Mode."
-      : "ESP32 is NOT connected and heartbeat storage is currently unavailable; state stays Simulation Mode.",
-  });
+  return NextResponse.json(
+    {
+      ok: true,
+      deviceId,
+      connection: "not_connected",
+      connectionMode: "simulation",
+      mode: "simulation",
+      dataSource: "simulation",
+      dataSourceLabel: "Simulated environmental data",
+      firmwareStatus: "Not connected",
+      firmwareVersion: null,
+      lastSeen: null,
+      sensorCount: SENSOR_KEYS.length,
+      healthySensorCount: 0,
+      operatingMode: "simulation",
+      heartbeat: null,
+      storageAvailable,
+      note: storageAvailable
+        ? "ESP32 is NOT connected — no telemetry/heartbeat has ever been received for this device. State stays Simulation Mode."
+        : "ESP32 is NOT connected and heartbeat storage is currently unavailable; state stays Simulation Mode.",
+    },
+    { headers: noStoreHeaders }
+  );
 }

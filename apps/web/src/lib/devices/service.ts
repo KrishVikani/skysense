@@ -137,50 +137,63 @@ export async function getDevicesSnapshot(
     // but always derive connection state from the API so the UI
     // correctly shows LIVE when the ESP32 is online even if no
     // readings have been stored yet (heartbeat may still be recorded).
-    // When the API is temporarily unavailable, preserve the previous
-    // connection state so a known LIVE state is not erased immediately.
+    // When the API is temporarily unavailable, we default to
+    // "not_connected" rather than preserving old "online" state from
+    // previousSnapshot, so that a physically disconnected ESP32 is
+    // correctly reflected across all pages.
     const now = new Date().toISOString();
     const apiStatus = await fetchDeviceStatus(ESP32_DEVICE_ID);
-    const status = isEsp32 ? apiStatus : null;
-    const fallback = previousSnapshot
-      ? {
-          connection: previousSnapshot.connection,
-          connectionMode: previousSnapshot.connectionMode,
-          mode: previousSnapshot.mode,
-          health: previousSnapshot.health,
-          lastSeen: previousSnapshot.lastSeen,
-          lastSeenAgeMs: previousSnapshot.lastSeenAgeMs,
-          firmwareVersion: previousSnapshot.firmwareVersion,
-          firmwareStatus: previousSnapshot.firmwareStatus,
-        }
-      : {
-          connection: "not_connected",
-          connectionMode: "offline",
-          mode: "simulation",
-          health: "unknown",
-          lastSeen: null,
-          lastSeenAgeMs: null,
-          firmwareVersion: null,
-          firmwareStatus: DEVICES_FIRMWARE_STATUS,
-        };
+
+    // Determine connection state from the API result.
+    // If the API reports connection=online with esp32 dataSource, the
+    // device is live. Any other connection state (not_connected, stale,
+    // offline) takes precedence over previousSnapshot fallback.
+    let connection: DeviceConnectionState;
+    let connectionMode: ConnectionMode;
+    let mode: DeviceMode;
+    let health: DeviceHealth;
+
+    if (apiStatus && apiStatus.connection === "online") {
+      // Device is genuinely online with live telemetry.
+      connection = "online";
+      connectionMode = apiStatus.connectionMode ?? "online";
+      mode = "live";
+      health = apiStatus.health ?? "healthy";
+    } else if (apiStatus) {
+      // API returned a result but connection is not online.
+      // Use the API's determination directly — do NOT fall back to
+      // previousSnapshot, which would incorrectly keep "online" alive
+      // after the ESP32 has stopped reporting.
+      connection = apiStatus.connection ?? "not_connected";
+      connectionMode = apiStatus.connectionMode ?? "offline";
+      mode = apiStatus.mode ?? "simulation";
+      health = apiStatus.health ?? "unknown";
+    } else {
+      // API unavailable — default to not_connected rather than
+      // preserving old "online" state from previousSnapshot.
+      connection = "not_connected";
+      connectionMode = "offline";
+      mode = "simulation";
+      health = "unknown";
+    }
 
     return {
       deviceId: ESP32_DEVICE_ID,
       deviceName: ESP32_DEVICE_NAME,
       location: ESP32_DEVICE_LOCATION,
-      connection: (status?.connection ?? fallback.connection) as DeviceConnectionState,
-      connectionMode: (status?.connectionMode ?? fallback.connectionMode) as ConnectionMode,
-      mode: (status?.mode ?? fallback.mode) as DeviceMode,
-      health: (status?.health ?? fallback.health) as DeviceHealth,
+      connection,
+      connectionMode,
+      mode,
+      health,
       dataSource: isEsp32 ? provider.label : DEVICES_DATA_SOURCE,
       dataSourceKind: isEsp32 ? "esp32" : "simulation",
-      firmwareStatus: status?.firmwareStatus ?? fallback.firmwareStatus,
+      firmwareStatus: isEsp32 ? "Disconnected" : DEVICES_FIRMWARE_STATUS,
       lastUpdated: now,
       dataAgeMs: Number.POSITIVE_INFINITY,
       isStale: true,
-      lastSeen: status?.lastSeen ?? fallback.lastSeen,
-      lastSeenAgeMs: status?.lastSeenAgeMs ?? fallback.lastSeenAgeMs,
-      firmwareVersion: status?.firmwareVersion ?? fallback.firmwareVersion,
+      lastSeen: null,
+      lastSeenAgeMs: null,
+      firmwareVersion: null,
       sensorCount: SENSOR_DEFINITIONS.length,
       reportingSensors: 0,
       connectedSensors: 0,
@@ -225,31 +238,47 @@ export async function getDevicesSnapshot(
   // ESP32 is sending telemetry. Using the API status here ensures the
   // My Station page switches to LIVE ESP32 telemetry even when the
   // provider kind flag is unexpectedly "mock".
-  // When the API is temporarily unavailable, preserve the previous
-  // connection state so a known LIVE state is not erased immediately.
+  //
+  // When the API is temporarily unavailable, we default to
+  // "not_connected" rather than preserving old "online" state from
+  // previousSnapshot, so that a physically disconnected ESP32 is
+  // correctly reflected across all pages.
   const apiStatus = await fetchDeviceStatus(ESP32_DEVICE_ID);
-  const fallback = previousSnapshot
-    ? {
-        connection: previousSnapshot.connection,
-        connectionMode: previousSnapshot.connectionMode,
-        mode: previousSnapshot.mode,
-        health: previousSnapshot.health,
-        firmwareStatus: previousSnapshot.firmwareStatus,
-      }
-    : {
-        connection: "not_connected" as DeviceConnectionState,
-        connectionMode: "offline" as ConnectionMode,
-        mode: "simulation" as DeviceMode,
-        health: "unknown" as DeviceHealth,
-        firmwareStatus: isEsp32 ? "Connected" : DEVICES_FIRMWARE_STATUS,
-      };
-  const connection = apiStatus?.connection ?? fallback.connection;
-  const connectionMode = apiStatus?.connectionMode ?? fallback.connectionMode;
-  const mode = apiStatus?.mode ?? fallback.mode;
-  const health = apiStatus?.health ?? fallback.health;
+
+  // Derive connection state from the API result.
+  // Prefer the API's determination. Only fall back to a safe default
+  // when the API is completely unreachable.
+  let connection: DeviceConnectionState;
+  let connectionMode: ConnectionMode;
+  let mode: DeviceMode;
+  let health: DeviceHealth;
+
+  if (apiStatus && apiStatus.connection === "online") {
+    // Device is genuinely online with live telemetry.
+    connection = "online";
+    connectionMode = apiStatus.connectionMode ?? "online";
+    mode = "live";
+    health = apiStatus.health ?? "healthy";
+  } else if (apiStatus) {
+    // API returned a result but connection is not online.
+    // Use the API's determination directly — do NOT fall back to
+    // previousSnapshot, which would incorrectly keep "online" alive
+    // after the ESP32 has stopped reporting telemetry.
+    connection = apiStatus.connection ?? "not_connected";
+    connectionMode = apiStatus.connectionMode ?? "offline";
+    mode = apiStatus.mode ?? "simulation";
+    health = apiStatus.health ?? "unknown";
+  } else {
+    // API unavailable — default to not_connected rather than
+    // preserving old "online" state from previousSnapshot.
+    connection = "not_connected";
+    connectionMode = "offline";
+    mode = "simulation";
+    health = "unknown";
+  }
 
   // Firmware status: use API value when available, fall back to provider-based logic
-  const firmwareStatus = apiStatus?.firmwareStatus ?? fallback.firmwareStatus;
+  const firmwareStatus = apiStatus?.firmwareStatus ?? (isEsp32 ? "Connected" : DEVICES_FIRMWARE_STATUS);
 
   return {
     deviceId: ESP32_DEVICE_ID,

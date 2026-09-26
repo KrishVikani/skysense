@@ -21,7 +21,7 @@ import { ESP32_DEVICE_ID } from "@/lib/devices/contract";
 import type { AIAnalysis } from "@/lib/intelligence/types";
 
 const WELCOME_MESSAGE =
-  "Hi, I'm SKYSENSE AI. Ask me about current temperature, humidity, pressure, UV, rainfall, active alerts, or your station status.";
+  "Hi, I'm SKYSENSE AI. Ask me about current temperature, humidity, wind, UV, air quality, active alerts, or your station status.";
 
 type Message = {
   id: string;
@@ -224,9 +224,9 @@ export default function AIIntelligenceClient() {
 
   return (
     <DashboardShell atmosphere="ai">
-      <div className="space-y-6">
+      <div className="flex flex-col h-[calc(100vh-6.5rem)] lg:h-[calc(100vh-8rem)] min-h-0">
         <motion.div
-          className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4"
+          className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 flex-shrink-0"
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
@@ -265,56 +265,54 @@ export default function AIIntelligenceClient() {
           </div>
         </motion.div>
 
-        <div className="chat-body flex-1 flex flex-col overflow-y-auto pb-2">
-          <div className="p-2 pointer-events-none">
-            {messages.map((msg) => {
-              const isUser = msg.role === "user";
-              return (
-                <div
-                  key={msg.id}
-                  className="flex items-start mb-4"
-                >
-                  <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${
-                      isUser
-                        ? "rounded-tr-sm bg-accent text-white align-self flex-end"
-                        : "rounded-tl-sm bg-muted/10 text-foreground align-self flex-start"
-                    }`}
-                  >
-                    <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-                    <span
-                      className={`mt-1 block text-[10px] ${isUser ? "text-white/70" : "text-muted-foreground"}`}
-                    >
-                      {new Date(msg.timestamp).toLocaleTimeString([], {
-                        hour: "numeric",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-
-            {errorChat && (
+        <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-2">
+          {messages.map((msg) => {
+            const isUser = msg.role === "user";
+            return (
               <div
-                className="max-w-[80%] rounded-xl border border-danger/25 bg-danger-bg/30 mx-auto p-3 text-xs text-danger mt-2"
+                key={msg.id}
+                className="flex items-start mb-4"
               >
-                {errorChat}
-              </div>
-            )}
-
-            {loadingChat && (
-              <div className="flex justify-start">
-                <div className="flex items-center gap-2 rounded-2xl rounded-tl-sm bg-muted/10 px-4 py-3">
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
+                <div
+                  className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${
+                    isUser
+                      ? "rounded-tr-sm bg-accent text-white align-self flex-end"
+                      : "rounded-tl-sm bg-muted/10 text-foreground align-self flex-start"
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                  <span
+                    className={`mt-1 block text-[10px] ${isUser ? "text-white/70" : "text-muted-foreground"}`}
+                  >
+                    {new Date(msg.timestamp).toLocaleTimeString([], {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
                   </span>
-                  <span className="text-xs text-muted-foreground">Thinking…</span>
                 </div>
               </div>
-            )}
-          </div>
+            );
+          })}
+
+          {errorChat && (
+            <div
+              className="max-w-[80%] rounded-xl border border-danger/25 bg-danger-bg/30 mx-auto p-3 text-xs text-danger mt-2"
+            >
+              {errorChat}
+            </div>
+          )}
+
+          {loadingChat && (
+            <div className="flex justify-start">
+              <div className="flex items-center gap-2 rounded-2xl rounded-tl-sm bg-muted/10 px-4 py-3">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
+                </span>
+                <span className="text-xs text-muted-foreground">Thinking…</span>
+              </div>
+            </div>
+          )}
 
           <div className="h-px my-4" />
         </div>
@@ -324,7 +322,7 @@ export default function AIIntelligenceClient() {
             e.preventDefault();
             sendMessage();
           }}
-          className="border-t border-border p-3 flex items-end gap-2"
+          className="flex-shrink-0 border-t border-border p-3 flex items-end gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
         >
           <textarea
             value={input}

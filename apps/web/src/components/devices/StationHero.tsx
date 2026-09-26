@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { motion } from "framer-motion";
-import { Database, Droplets, Leaf, MapPin, Sun, Timer, Wind } from "lucide-react";
+import { Database, Droplets, Gauge, Leaf, MapPin, Sun, Timer, Wind } from "lucide-react";
 import type { DeviceSnapshot } from "@/lib/devices/types";
 import { formatAge } from "@/lib/devices/quality";
 import { aqiCategoryOf, uvRiskOf } from "@/lib/environmental/service";
@@ -120,11 +120,16 @@ export function StationHero({
             </p>
           </div>
 
-          <div className="grid w-full max-w-md grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="grid w-full max-w-md grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <StatTile
               icon={<Droplets className="h-5 w-5 text-sky-200" aria-hidden="true" />}
               label="Humidity"
               value={humidityLabel}
+            />
+            <StatTile
+              icon={<Gauge className="h-5 w-5 text-orange-200" aria-hidden="true" />}
+              label="Pressure"
+              value={pressureLabel}
             />
             <StatTile
               icon={<Sun className="h-5 w-5 text-amber-200" aria-hidden="true" />}

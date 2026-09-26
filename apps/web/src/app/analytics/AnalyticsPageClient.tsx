@@ -211,9 +211,12 @@ export default function AnalyticsPageClient() {
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <span className={badgeClass}>
                 {bannerIsLive ? "LIVE ESP32 Telemetry" : badgeLabel}
-                <span className="relative flex h-1.5 w-1.5" aria-hidden="true">
-                  {isEsp32 ? (
-                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-success" />
+                <span className="relative flex h-1.5 w-1.5 ml-1.5" aria-hidden="true">
+                  {bannerIsLive ? (
+                    <>
+                      <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-70 animate-pulse" />
+                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                    </>
                   ) : (
                     <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-warning" />
                   )}

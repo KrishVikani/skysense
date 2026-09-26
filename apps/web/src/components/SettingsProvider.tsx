@@ -133,7 +133,17 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 export function useSettings(): SettingsContextValue {
   const context = useContext(SettingsContext);
   if (!context) {
-    throw new Error("useSettings must be used within a SettingsProvider");
+    return {
+      settings: DEFAULT_SETTINGS,
+      loaded: false,
+      source: "defaults",
+      error: null,
+      lastSavedAt: null,
+      lastSavedLocally: false,
+      save: async () => ({ ok: false, errors: { _root: "Settings not available" } }),
+      reset: async () => ({ ok: false, errors: { _root: "Settings not available" } }),
+      clearLocal: () => {},
+    };
   }
   return context;
 }

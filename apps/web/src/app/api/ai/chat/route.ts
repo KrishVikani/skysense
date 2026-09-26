@@ -6,6 +6,82 @@ import { ESP32_DEVICE_ID } from "@/lib/devices/contract";
 
 import type { NextRequest } from "next/server";
 
+/**
+ * Safely extracts an HTTP-like status code from a Google GenAI SDK error.
+ * The GenAI SDK may surface errors in different shapes depending on the
+ * underlying transport (REST vs gRPC) and error type. This helper normalizes
+ * them to a numeric HTTP-like status for retry/response logic.
+ */
+function extractGeminiStatus(error: unknown): number | null {
+  if (!error || typeof error !== "object") return null;
+
+  const err = error as Record<string, unknown>;
+
+  // 1. Direct statusCode property (some Google SDKs use this)
+  if (typeof err.statusCode === "number") return err.statusCode;
+
+  // 2. Response object with status (common in REST-based clients)
+  if (err.response && typeof err.response === "object") {
+    const resp = err.response as Record<string, unknown>;
+    if (typeof resp.status === "number") return resp.status;
+    if (typeof resp.statusCode === "number") return resp.statusCode;
+  }
+
+  // 3. Error metadata with http status (gRPC-web / connect-rpc style)
+  if (err.metadata && typeof err.metadata === "object") {
+    const meta = err.metadata as Record<string, unknown>;
+    // Look for common http-status header keys
+    for (const key of ["http-status", "grpc-status", "status"]) {
+      const val = meta[key];
+      if (Array.isArray(val) && val.length > 0 && typeof val[0] === "string") {
+        const parsed = parseInt(val[0], 10);
+        if (!Number.isNaN(parsed)) return parsed;
+      }
+      if (typeof val === "string") {
+        const parsed = parseInt(val, 10);
+        if (!Number.isNaN(parsed)) return parsed;
+      }
+      if (typeof val === "number") return val;
+    }
+  }
+
+  // 4. gRPC code mapping (if statusCode not available, map known codes)
+  // gRPC codes: 8=RESOURCE_EXHAUSTED(429), 14=UNAVAILABLE(503), 2=UNKNOWN(500), etc.
+  if (typeof err.code === "number") {
+    const grpcToHttp: Record<number, number> = {
+      8: 429, // RESOURCE_EXHAUSTED
+      14: 503, // UNAVAILABLE
+      4: 500, // DEADLINE_EXCEEDED
+      10: 500, // ABORTED
+      13: 500, // INTERNAL
+      1: 500, // CANCELLED (treat as server error)
+      2: 500, // UNKNOWN
+    };
+    if (grpcToHttp[err.code] !== undefined) return grpcToHttp[err.code];
+  }
+
+  // 5. String code property (e.g., "RESOURCE_EXHAUSTED")
+  if (typeof err.code === "string") {
+    const codeStr = err.code.toUpperCase();
+    if (codeStr === "RESOURCE_EXHAUSTED") return 429;
+    if (codeStr === "UNAVAILABLE") return 503;
+    if (codeStr === "DEADLINE_EXCEEDED") return 504;
+    if (codeStr === "INTERNAL") return 500;
+    if (codeStr === "UNKNOWN") return 500;
+  }
+
+  // 6. Message-based fallback for common patterns
+  if (typeof err.message === "string") {
+    const msg = err.message.toLowerCase();
+    if (msg.includes("429") || msg.includes("quota") || msg.includes("rate limit")) return 429;
+    if (msg.includes("503") || msg.includes("unavailable") || msg.includes("service unavailable")) return 503;
+    if (msg.includes("500") || msg.includes("internal error")) return 500;
+    if (msg.includes("504") || msg.includes("timeout") || msg.includes("deadline")) return 504;
+  }
+
+  return null;
+}
+
 const MAX_MESSAGE_LENGTH = 2000;
 
 const AI_SYSTEM_INSTRUCTION = `You are SKYSENSE AI, the specialized environmental intelligence assistant for the user's personal weather station.
@@ -228,7 +304,6 @@ export async function POST(request: NextRequest) {
 
     let responseText: string;
     let geminiStatusCode: number | null = null;
-    let geminiErrorCode: string | null = null;
 
     // Retry configuration for transient failures
     const maxRetries = 3;
@@ -236,7 +311,7 @@ export async function POST(request: NextRequest) {
 
     async function callGeminiWithRetry(): Promise<string> {
       let lastError: unknown;
-      
+
       for (let attempt = 0; attempt < maxRetries; attempt++) {
         try {
           const response = await ai.models.generateContent({
@@ -251,28 +326,15 @@ export async function POST(request: NextRequest) {
           return response.text ?? "";
         } catch (geminiError) {
           lastError = geminiError;
-          
-          const errorObj = geminiError as
-            | { statusCode?: number; code?: string; message?: string }
-            | Error;
-          let errorStatus: number | null = null;
-          let errorCode: string | null = null;
 
-          if ("statusCode" in errorObj && errorObj.statusCode !== undefined) {
-            errorStatus = errorObj.statusCode;
-          }
-
-          if ("code" in errorObj && errorObj.code !== undefined) {
-            errorCode = errorObj.code;
-          }
-
-          geminiStatusCode = typeof errorStatus === "number" ? errorStatus : 500;
-          geminiErrorCode = errorCode ?? null;
+          // Use robust status extraction helper
+          const errorStatus = extractGeminiStatus(geminiError);
+          geminiStatusCode = errorStatus ?? 500;
 
           // Check if this is a retryable error
-          const isRetryable = 
-            geminiStatusCode === 429 || 
-            geminiStatusCode === 503 || 
+          const isRetryable =
+            geminiStatusCode === 429 ||
+            geminiStatusCode === 503 ||
             (geminiStatusCode !== null && geminiStatusCode >= 500 && geminiStatusCode < 600);
 
           // Don't retry on last attempt
@@ -283,7 +345,7 @@ export async function POST(request: NextRequest) {
           // Exponential backoff: 1s, 2s
           const delayMs = baseDelayMs * Math.pow(2, attempt);
           console.log(`Gemini API transient error (${geminiStatusCode}), retrying in ${delayMs}ms (attempt ${attempt + 1}/${maxRetries})`);
-          await new Promise(resolve => setTimeout(resolve, delayMs));
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
         }
       }
 
@@ -294,23 +356,10 @@ export async function POST(request: NextRequest) {
     try {
       responseText = await callGeminiWithRetry();
     } catch (geminiError) {
-      const errorObj = geminiError as
-        | { statusCode?: number; code?: string; message?: string }
-        | Error;
-      let errorStatus: number | null = null;
-      let errorCode: string | null = null;
+      // Use robust status extraction helper for final error handling
+      geminiStatusCode = extractGeminiStatus(geminiError) ?? 500;
 
-      if ("statusCode" in errorObj && errorObj.statusCode !== undefined) {
-        errorStatus = errorObj.statusCode;
-      }
-
-      if ("code" in errorObj && errorObj.code !== undefined) {
-        errorCode = errorObj.code;
-      }
-
-      geminiStatusCode = typeof errorStatus === "number" ? errorStatus : 500;
-
-      console.error("Gemini API error:", errorCode || (errorObj as Error | undefined)?.message);
+      console.error("Gemini API error:", (geminiError as Error | undefined)?.message);
 
       // Handle specific Gemini API error codes
       if (geminiStatusCode === 429) {

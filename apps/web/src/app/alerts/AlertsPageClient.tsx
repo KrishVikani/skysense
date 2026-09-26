@@ -330,6 +330,7 @@ export default function AlertsPageClient() {
   const topSeverity = summary ? topSeverityOf(summary) : null;
   const topColor = topSeverity ? SEVERITY_COLOR[topSeverity] : "var(--color-success)";
   const isLive = deviceStatus?.connection === "online" && deviceStatus?.dataSource === "esp32";
+  const isOffline = deviceStatus?.connection !== "online" && deviceStatus?.dataSource === "esp32";
   const alertsDataSource = isLive ? "ESP32 device telemetry" : ALERTS_DATA_SOURCE;
   const isDeviceConnected = isLive;
   const deviceStatusLabel = isDeviceConnected ? "LIVE ESP32 Telemetry" : "Device Not Connected";
@@ -352,8 +353,8 @@ export default function AlertsPageClient() {
               Current conditions, active warnings and recommended actions from the SKYSENSE alert engine
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <DataSourceStatus dataSource={alertsDataSource} />
-              {!isDeviceConnected && (
+              <DataSourceStatus dataSource={alertsDataSource} isOffline={isOffline} />
+              {!isDeviceConnected && !isOffline && (
                 <>
                   <span className="badge badge-warning">{deviceStatusLabel}</span>
                   <span className="text-xs text-muted-foreground">{deviceStatusDescription}</span>

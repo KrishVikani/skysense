@@ -120,7 +120,7 @@ export function StationHero({
             </p>
           </div>
 
-          <div className="grid w-full max-w-md grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid w-full max-w-md grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-2">
             <StatTile
               icon={<Droplets className="h-5 w-5 text-sky-200" aria-hidden="true" />}
               label="Humidity"

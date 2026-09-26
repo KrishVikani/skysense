@@ -177,6 +177,51 @@ export async function getDevicesSnapshot(
       health = "unknown";
     }
 
+    // If ESP32 provider was active and we have a previous snapshot with
+    // real telemetry (mode === "live"), preserve the last known real
+    // sensor readings instead of falling back to simulation placeholders.
+    // This ensures that when ESP32 goes offline, the last real readings
+    // remain displayed instead of being replaced by simulation data.
+    const hasPreviousRealTelemetry =
+      previousSnapshot &&
+      previousSnapshot.mode === "live" &&
+      previousSnapshot.sensors.some((s) => s.value !== null);
+
+    if (hasPreviousRealTelemetry && isEsp32) {
+      // Preserve last real telemetry: keep sensors with their last real values,
+      // but update connection state to reflect offline status.
+      const preservedSensors = previousSnapshot.sensors.map((sensor) => ({
+        ...sensor,
+        status: "stale" as const, // Mark as stale since device is offline
+        lastUpdated: sensor.lastUpdated,
+      }));
+
+      return {
+        deviceId: ESP32_DEVICE_ID,
+        deviceName: ESP32_DEVICE_NAME,
+        location: previousSnapshot.location,
+        connection,
+        connectionMode,
+        mode: "live", // Keep mode as "live" to indicate these are real readings
+        health,
+        dataSource: provider.label, // Keep ESP32 as data source
+        dataSourceKind: "esp32",
+        firmwareStatus: apiStatus?.firmwareStatus ?? "Disconnected",
+        lastUpdated: previousSnapshot.lastUpdated,
+        dataAgeMs: dataAgeMs(previousSnapshot.lastUpdated),
+        isStale: isStale(previousSnapshot.lastUpdated, STALE_AFTER_MS),
+        lastSeen: apiStatus?.lastSeen ?? previousSnapshot.lastSeen ?? null,
+        lastSeenAgeMs: apiStatus?.lastSeenAgeMs ?? previousSnapshot.lastSeenAgeMs ?? null,
+        firmwareVersion: apiStatus?.firmwareVersion ?? previousSnapshot.firmwareVersion ?? null,
+        sensorCount: preservedSensors.length,
+        reportingSensors: preservedSensors.filter((s) => s.value !== null).length,
+        connectedSensors: 0, // No sensors actively reporting while offline
+        healthySensorCount: 0,
+        sensors: preservedSensors,
+        dataQuality: "disconnected", // Real data but disconnected
+      };
+    }
+
     return {
       deviceId: ESP32_DEVICE_ID,
       deviceName: ESP32_DEVICE_NAME,

@@ -89,7 +89,7 @@ export default function MyStationPageClient() {
     setError(false);
     setRefreshing(true);
 
-    Promise.all([getDevicesSnapshot(null), getEnvironmentalAnalytics("24h")])
+    Promise.all([getDevicesSnapshot(snapshot), getEnvironmentalAnalytics("24h")])
       .then(([nextSnapshot, nextAnalytics]) => {
         if (cancelled) return;
         setSnapshot(withDisplayUnits(nextSnapshot, settings.units));
@@ -114,7 +114,7 @@ export default function MyStationPageClient() {
     return () => {
       cancelled = true;
     };
-  }, [reloadKey, settings.units]);
+  }, [reloadKey, settings.units, snapshot]);
 
   // LIVE REFRESH: poll the snapshot at the user-configured interval (bounded in
   // Settings). Paused while the tab is hidden and skipped when a request is in

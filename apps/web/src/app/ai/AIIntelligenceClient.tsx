@@ -21,7 +21,7 @@ import { ESP32_DEVICE_ID } from "@/lib/devices/contract";
 import type { AIAnalysis } from "@/lib/intelligence/types";
 
 const WELCOME_MESSAGE =
-  "Hi, I'm SKYSENSE AI. Ask me about current temperature, humidity, wind, UV, air quality, active alerts, or your station status.";
+  "Hi, I'm SKYSENSE AI. Ask me about current temperature, humidity, pressure, UV, rainfall, active alerts, or your station status.";
 
 type Message = {
   id: string;

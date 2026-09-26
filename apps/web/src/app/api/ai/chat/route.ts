@@ -22,7 +22,7 @@ When discussing environmental risk, explain the relevant sensor values and SKYSE
 
 For questions unrelated to SKYSENSE environmental data (such as programming, coding, gaming, or general-purpose knowledge), respond concisely with:
 
-"I'm SKYSENSE AI, a specialized environmental assistant. I can help with weather, environmental conditions, your station readings, alerts, air quality, UV, temperature, wind, and other SKYSENSE-related information. I can't help with unrelated programming or general-purpose requests."
+"I'm SKYSENSE AI, a specialized environmental assistant. I can help with weather, environmental conditions, your station readings, alerts, temperature, humidity, pressure, UV, rainfall, and other SKYSENSE-related information. I can't help with unrelated programming or general-purpose requests."
 
 Do not claim to be a professional meteorologist or medical professional.
 
@@ -230,17 +230,69 @@ export async function POST(request: NextRequest) {
     let geminiStatusCode: number | null = null;
     let geminiErrorCode: string | null = null;
 
+    // Retry configuration for transient failures
+    const maxRetries = 3;
+    const baseDelayMs = 1000;
+
+    async function callGeminiWithRetry(): Promise<string> {
+      let lastError: unknown;
+      
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          const response = await ai.models.generateContent({
+            model: "gemini-3.5-flash",
+            contents: userPrompt,
+            config: {
+              systemInstruction: AI_SYSTEM_INSTRUCTION,
+              temperature: 0.4,
+              maxOutputTokens: 1024,
+            },
+          });
+          return response.text ?? "";
+        } catch (geminiError) {
+          lastError = geminiError;
+          
+          const errorObj = geminiError as
+            | { statusCode?: number; code?: string; message?: string }
+            | Error;
+          let errorStatus: number | null = null;
+          let errorCode: string | null = null;
+
+          if ("statusCode" in errorObj && errorObj.statusCode !== undefined) {
+            errorStatus = errorObj.statusCode;
+          }
+
+          if ("code" in errorObj && errorObj.code !== undefined) {
+            errorCode = errorObj.code;
+          }
+
+          geminiStatusCode = typeof errorStatus === "number" ? errorStatus : 500;
+          geminiErrorCode = errorCode ?? null;
+
+          // Check if this is a retryable error
+          const isRetryable = 
+            geminiStatusCode === 429 || 
+            geminiStatusCode === 503 || 
+            (geminiStatusCode !== null && geminiStatusCode >= 500 && geminiStatusCode < 600);
+
+          // Don't retry on last attempt
+          if (!isRetryable || attempt === maxRetries - 1) {
+            break;
+          }
+
+          // Exponential backoff: 1s, 2s
+          const delayMs = baseDelayMs * Math.pow(2, attempt);
+          console.log(`Gemini API transient error (${geminiStatusCode}), retrying in ${delayMs}ms (attempt ${attempt + 1}/${maxRetries})`);
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+      }
+
+      // If we get here, all retries exhausted or non-retryable error
+      throw lastError;
+    }
+
     try {
-      const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: userPrompt,
-        config: {
-          systemInstruction: AI_SYSTEM_INSTRUCTION,
-          temperature: 0.4,
-          maxOutputTokens: 1024,
-        },
-      });
-      responseText = response.text ?? "";
+      responseText = await callGeminiWithRetry();
     } catch (geminiError) {
       const errorObj = geminiError as
         | { statusCode?: number; code?: string; message?: string }

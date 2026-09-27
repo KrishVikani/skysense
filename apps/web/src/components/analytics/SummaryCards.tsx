@@ -21,7 +21,7 @@ const CARDS: CardConfig[] = [
   { key: "temperature", label: "Temperature", icon: Thermometer, color: "var(--color-sun)" },
   { key: "humidity", label: "Humidity", icon: Droplets, color: "var(--color-sky)" },
   { key: "pressure", label: "Pressure", icon: Thermometer, color: "var(--color-muted)" },
-  { key: "uvIndex", label: "UV Index", icon: Sun, color: "var(--color-warning)" },
+  { key: "lightLevel", label: "Light Level", icon: Sun, color: "var(--color-warning)" },
 ];
 
 const TREND_COLORS = {

@@ -197,7 +197,7 @@ function contributingFactorsFor(features: ForecastFeatures): string[] {
     { label: "Pressure", trend: features.pressure },
     { label: "Wind", trend: features.windSpeed },
     { label: "Air quality", trend: features.airQuality },
-    { label: "UV index", trend: features.uvIndex },
+    { label: "Light level", trend: features.lightLevel },
   ].filter((t) => t.trend.direction !== "stable" && t.trend.direction !== "unknown");
 
   for (const t of notableTrends.slice(0, 4)) {
@@ -244,7 +244,7 @@ const volatilityByMetric: Record<string, number> = features
         pressure: features.pressure.volatility,
         windSpeed: features.windSpeed.volatility,
         airQuality: features.airQuality.volatility,
-        uvIndex: features.uvIndex.volatility,
+        lightLevel: features.lightLevel.volatility,
       }
     : {};
     const confidence = computeConfidence(assessment, volatilityByMetric);
@@ -256,7 +256,7 @@ const volatilityByMetric: Record<string, number> = features
           pressure: features.pressure,
           windSpeed: features.windSpeed,
           airQuality: features.airQuality,
-          uvIndex: features.uvIndex,
+          lightLevel: features.lightLevel,
         }
       : null;
 
@@ -329,8 +329,8 @@ const volatilityByMetric: Record<string, number> = features
         forecastable,
         confidence.confidence
       ),
-      uvIndex: metricForecast(
-        features?.uvIndex ?? emptyTrend("uvIndex"),
+      lightLevel: metricForecast(
+        features?.lightLevel ?? emptyTrend("lightLevel"),
         horizonHours,
         forecastable,
         confidence.confidence
@@ -389,7 +389,7 @@ function emptyFeatures(): ForecastFeatures {
     windSpeed: emptyTrend("windSpeed"),
     windDirection: emptyTrend("windDirection"),
     airQuality: emptyTrend("airQuality"),
-    uvIndex: emptyTrend("uvIndex"),
+    lightLevel: emptyTrend("lightLevel"),
     rainfall: emptyTrend("rainfall"),
     dominantWindLabel: "Unknown",
     rainLikelihood: 0,

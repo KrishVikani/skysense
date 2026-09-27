@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Database, Droplets, Gauge, Leaf, MapPin, Sun, Timer, Wind } from "lucide-react";
 import type { DeviceSnapshot } from "@/lib/devices/types";
 import { formatAge } from "@/lib/devices/quality";
-import { aqiCategoryOf, uvRiskOf } from "@/lib/environmental/service";
+import { aqiCategoryOf, lightLevelRiskOf } from "@/lib/environmental/service";
 import type { EnvironmentalReading } from "@/lib/environmental/types";
 import { conditionFromReading, compassLabel } from "@/lib/weather/conditions";
 import { WeatherConditionIcon } from "@/components/weather/WeatherConditionIcon";
@@ -50,7 +50,7 @@ export function StationHero({
   const temp = sensor("temperature");
   const humidity = sensor("humidity");
   const pressure = sensor("pressure");
-  const uv = sensor("uvIndex");
+  const light = sensor("lightLevel");
   const rainfall = sensor("rainfall");
 
   const condition = conditionFromReading(reading);
@@ -58,9 +58,11 @@ export function StationHero({
   const tempUnit = temp?.unit ?? "°C";
   const humidityLabel = humidity ? `${humidity.valueLabel}%` : `${Math.round(reading.humidity)}%`;
   const pressureLabel = pressure ? `${pressure.valueLabel} hPa` : "—";
-  const uvLabel = uv
-    ? `${uv.valueLabel} · ${uvRiskOf(reading.uvIndex)}`
-    : `${reading.uvIndex.toFixed(1)} · ${uvRiskOf(reading.uvIndex)}`;
+  const lightLabel = light && light.value !== null
+    ? `${light.valueLabel} ${light.unit} · ${lightLevelRiskOf(light.value)}`
+    : reading.lightLevel !== null
+      ? `${reading.lightLevel.toFixed(0)} lx · ${lightLevelRiskOf(reading.lightLevel)}`
+      : "Unavailable";
   const rainfallLabel = rainfall
     ? `${rainfall.valueLabel}${rainfall.unit && !rainfall.valueLabel.includes(rainfall.unit) ? ` ${rainfall.unit}` : ""}`
     : "—";
@@ -133,8 +135,8 @@ export function StationHero({
             />
             <StatTile
               icon={<Sun className="h-5 w-5 text-amber-200" aria-hidden="true" />}
-              label="UV Index"
-              value={uvLabel}
+              label="Light Level"
+              value={lightLabel}
             />
             <StatTile
               icon={<Leaf className="h-5 w-5 text-emerald-200" aria-hidden="true" />}

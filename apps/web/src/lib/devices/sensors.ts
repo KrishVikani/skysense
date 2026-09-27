@@ -13,7 +13,7 @@ import type { SensorDefinition, SensorKey } from "./types";
  *   humidity       → ESP32_HUMIDITY_SENSOR          (%, number)
  *   pressure       → ESP32_PRESSURE_SENSOR          (hPa, number)
  *   airQuality     → ESP32_AIR_QUALITY_SENSOR       (US AQI, number)
- *   uvIndex        → ESP32_UV_SENSOR                (unitless, number)
+ *   lightLevel     → ESP32_LIGHT_SENSOR             (lux, number)
  *   rainfall (rain)→ ESP32_RAIN_SENSOR              (mm, number)
  *   windSpeed      → ESP32_WIND_SPEED_SENSOR        (km/h, number)
  *   windDirection  → ESP32_WIND_DIRECTION_SENSOR    (degrees 0–360, number)
@@ -69,14 +69,14 @@ export const SENSOR_DEFINITIONS: SensorDefinition[] = [
     description: "US EPA Air Quality Index value.",
   },
   {
-    key: "uvIndex",
-    label: "UV Index",
-    hardwareComponent: "ESP32_UV_SENSOR",
-    unit: "index",
+    key: "lightLevel",
+    label: "Light Level",
+    hardwareComponent: "ESP32_LIGHT_SENSOR",
+    unit: "lx",
     dataType: "number",
-    validRange: { min: 0, max: 20 },
+    validRange: { min: 0, max: 100000 },
     enabled: true,
-    description: "Ultraviolet index (unitless exposure scale).",
+    description: "Ambient illuminance in lux (BH1750 sensor).",
   },
   {
     key: "rainfall",

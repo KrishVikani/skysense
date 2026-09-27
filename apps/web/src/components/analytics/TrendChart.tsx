@@ -42,7 +42,10 @@ export function TrendChart({
   average,
   valueFormatter,
 }: TrendChartProps) {
-  const values = data.map((r) => r[dataKey]);
+  const rawValues = data.map((r) => r[dataKey]);
+  const values = dataKey === "lightLevel"
+    ? rawValues.filter((v): v is number => v !== null)
+    : (rawValues as number[]);
   const domain = yDomain(values);
   const gradientId = `trend-fill-${dataKey}`;
   const latest = values[values.length - 1];

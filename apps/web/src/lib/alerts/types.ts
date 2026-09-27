@@ -69,7 +69,7 @@ export interface AlertSummary {
  * for now; the structure is shaped so a backend can persist them later.
  */
 export interface AlertThresholdSetting {
-  metric: "temperature" | "humidity" | "windSpeed" | "uvIndex" | "airQuality";
+  metric: "temperature" | "humidity" | "windSpeed" | "lightLevel" | "airQuality";
   label: string;
   unit: string;
   enabled: boolean;
@@ -78,7 +78,7 @@ export interface AlertThresholdSetting {
 }
 
 export type AlertSettings = Record<
-  "temperature" | "humidity" | "windSpeed" | "uvIndex" | "airQuality",
+  "temperature" | "humidity" | "windSpeed" | "lightLevel" | "airQuality",
   AlertThresholdSetting
 >;
 
@@ -91,14 +91,14 @@ export type AlertSettings = Record<
  */
 export interface AlertThresholdPreference {
   enabled: boolean;
-  /** °C / % / km/h / UV index / AQI. `null` keeps the default warning rule. */
+  /** °C / % / km/h / lux / AQI. `null` keeps the default warning rule. */
   warningThreshold: number | null;
-  /** °C / % / km/h / UV index / AQI. `null` keeps the default critical rule. */
+  /** °C / % / km/h / lux / AQI. `null` keeps the default critical rule. */
   criticalThreshold: number | null;
 }
 
 export type AlertThresholdPreferences = Record<
-  "temperature" | "humidity" | "windSpeed" | "uvIndex" | "airQuality",
+  "temperature" | "humidity" | "windSpeed" | "lightLevel" | "airQuality",
   AlertThresholdPreference
 >;
 

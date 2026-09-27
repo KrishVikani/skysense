@@ -5,7 +5,7 @@ import { getEnvironmentalDataProvider } from "./provider";
 export {
   aqiCategoryOf,
   computeAnalytics,
-  uvRiskOf,
+  lightLevelRiskOf,
 } from "./analytics";
 export type {
   AnalyticsResult,

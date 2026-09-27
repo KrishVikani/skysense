@@ -13,7 +13,7 @@ const ICONS: Record<InsightIcon, ComponentType<{ className?: string; style?: CSS
   temperature: Thermometer,
   humidity: Droplets,
   wind: Wind,
-  uv: Sun,
+  light: Sun,
   air: Leaf,
   rain: CloudRain,
 };

@@ -122,11 +122,11 @@ export default function HomeScreen() {
               icon={<Wind size={24} color="#718096" />}
             />
             <MetricCard
-              label="UV Index"
-              value={environment.uvIndex?.toString() || "N/A"}
-              trend={environment.uvIndex && environment.uvIndex > 8 ? "up" : "stable"}
-              trendColor={environment.uvIndex && environment.uvIndex > 8 ? "#e53e3e" : "#4299e1"}
-              icon={<Cloud size={24} color="#ed8936" />}
+              label="Light Level"
+              value={environment.lightLevel ? `${environment.lightLevel} lx` : "N/A"}
+              trend={environment.lightLevel && environment.lightLevel > 50000 ? "up" : "stable"}
+              trendColor={environment.lightLevel && environment.lightLevel > 50000 ? "#e53e3e" : "#4299e1"}
+              icon={<Sun size={24} color="#ed8936" />}
             />
           </View>
         </View>
@@ -166,7 +166,7 @@ export default function HomeScreen() {
             <View style={styles.recommendationItem}>
               <Shield size={20} color="#d69e2e" />
               <Text style={styles.recommendationText}>
-                UV index high - use sun protection
+                Light level high - use sun protection
               </Text>
             </View>
           </View>

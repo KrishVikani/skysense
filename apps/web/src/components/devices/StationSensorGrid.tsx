@@ -20,7 +20,7 @@ import { SectionHeader } from "@/components/SectionHeader";
  *   - temperature
  *   - humidity
  *   - pressure
- *   - uvIndex (light intensity / UV)
+ *   - lightLevel (BH1750 light sensor)
  *   - rainfall (rain detection)
  *
  * Wind speed, wind direction, air quality, and AQI are NOT measured by the
@@ -30,7 +30,7 @@ const TREND_KEYS: Partial<Record<SensorKey, MetricKey>> = {
   temperature: "temperature",
   humidity: "humidity",
   pressure: "pressure",
-  uvIndex: "uvIndex",
+  lightLevel: "lightLevel",
   rainfall: "rainfall",
 };
 
@@ -76,7 +76,7 @@ function isEsp32SupportedSensor(key: SensorKey): boolean {
     "temperature",
     "humidity",
     "pressure",
-    "uvIndex",
+    "lightLevel",
     "rainfall",
   ].includes(key);
 }
@@ -156,7 +156,7 @@ function SensorCard({
  *   - temperature
  *   - humidity
  *   - pressure
- *   - uvIndex (light intensity / UV)
+ *   - lightLevel (BH1750 light sensor)
  *   - rainfall (rain detection)
  */
 export function StationSensorGrid({

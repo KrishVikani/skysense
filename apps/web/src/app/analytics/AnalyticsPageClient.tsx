@@ -8,7 +8,7 @@ import { EmptyState } from "@skysense/ui";
 import { TimeRangeSelector } from "@/components/analytics/TimeRangeSelector";
 import { SummaryCards } from "@/components/analytics/SummaryCards";
 import { MetricExplorer } from "@/components/analytics/MetricExplorer";
-import { UvRainSection } from "@/components/analytics/UvRainSection";
+import { LightRainSection } from "@/components/analytics/LightRainSection";
 import { ScoreSection } from "@/components/analytics/ScoreSection";
 import { InsightsSection } from "@/components/analytics/InsightsSection";
 import { Freshness } from "@/components/analytics/Freshness";
@@ -246,9 +246,9 @@ export default function AnalyticsPageClient() {
         />
 
         {bannerIsLive && (
-          <UvRainSection
-            uv={result.summary.uvIndex}
-            uvRisk={result.uvRisk}
+          <LightRainSection
+            lightLevel={result.summary.lightLevel}
+            lightLevelRisk={result.lightLevelRisk}
             rainfall={result.summary.rainfall}
           />
         )}

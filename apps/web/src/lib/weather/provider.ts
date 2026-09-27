@@ -1,4 +1,4 @@
-import { aqiCategoryOf, uvRiskOf } from "@/lib/environmental/analytics";
+import { aqiCategoryOf, lightLevelRiskOf } from "@/lib/environmental/analytics";
 import { getEnvironmentalDataProvider } from "@/lib/environmental/provider";
 import { generateFutureReadings } from "@/lib/environmental/mockData";
 import type { EnvironmentalReading } from "@/lib/environmental/types";
@@ -84,7 +84,7 @@ function dailyOutlook(readings: EnvironmentalReading[]): WeatherDailyItem[] {
       const rainy = rainfall.some((r) => r > 0);
       const representative = rainy
         ? dayReadings.reduce((a, b) => (a.rainfall > b.rainfall ? a : b))
-        : dayReadings.reduce((a, b) => (a.uvIndex > b.uvIndex ? a : b));
+        : dayReadings.reduce((a, b) => (a.lightLevel > b.lightLevel ? a : b));
       return {
         date,
         condition: conditionFromReading(representative),
@@ -140,8 +140,8 @@ export class SimulatedWeatherProvider implements WeatherProvider {
       humidity: latest.humidity,
       windSpeed: latest.windSpeed,
       windDirectionLabel: compassLabel(latest.windDirection),
-      uvIndex: latest.uvIndex,
-      uvRisk: uvRiskOf(latest.uvIndex),
+      lightLevel: latest.lightLevel,
+      lightLevelRisk: lightLevelRiskOf(latest.lightLevel ?? 0),
       airQuality: latest.airQuality,
       aqiCategory: aqiCategoryOf(latest.airQuality),
       pressure: latest.pressure,

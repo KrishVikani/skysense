@@ -40,7 +40,7 @@ const METRIC_CARDS: { key: keyof ForecastResult; label: string; unit: string }[]
   { key: "pressure", label: "Pressure", unit: " hPa" },
   { key: "windSpeed", label: "Wind speed", unit: " km/h" },
   { key: "airQuality", label: "Air quality", unit: " AQI" },
-  { key: "uvIndex", label: "UV index", unit: "" },
+  { key: "lightLevel", label: "Light level", unit: " lx" },
   { key: "rainfall", label: "Rainfall", unit: " mm" },
 ];
 

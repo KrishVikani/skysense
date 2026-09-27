@@ -77,7 +77,7 @@ const ALERT_METRICS: {
   { key: "temperature", label: "Temperature", unit: "°C", min: -40, max: 60 },
   { key: "humidity", label: "Humidity", unit: "%", min: 0, max: 100 },
   { key: "windSpeed", label: "Wind speed", unit: "km/h", min: 0, max: 200 },
-  { key: "uvIndex", label: "UV index", unit: "", min: 0, max: 20 },
+  { key: "lightLevel", label: "Light level", unit: "lx", min: 0, max: 100000 },
   { key: "airQuality", label: "Air quality", unit: "AQI", min: 0, max: 500 },
 ];
 

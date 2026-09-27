@@ -39,7 +39,7 @@ const INSIGHT_ID_BY_METRIC: Record<MetricSettingKey, string> = {
   temperature: "temperature",
   humidity: "humidity",
   windSpeed: "wind",
-  uvIndex: "uv",
+  lightLevel: "light",
   airQuality: "air",
 };
 

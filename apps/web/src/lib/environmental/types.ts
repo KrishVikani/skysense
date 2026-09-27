@@ -46,7 +46,7 @@ export type SensorStatus = "not_connected" | "simulated" | "available" | "stale"
  *  - humidity: relative %
  *  - windSpeed: km/h
  *  - windDirection: degrees, 0–360 (meteorological, from north)
- *  - uvIndex: unitless UV index
+ *  - lightLevel: illuminance in lux (BH1750 sensor)
  *  - airQuality: US AQI number
  *  - pressure: hPa
  *  - rainfall: accumulated mm in the sample window
@@ -63,7 +63,7 @@ export interface EnvironmentalReading {
   humidity: number;
   windSpeed: number;
   windDirection: number;
-  uvIndex: number;
+  lightLevel: number;
   airQuality: number;
   pressure: number;
   rainfall: number;
@@ -91,7 +91,7 @@ export type MetricKey =
   | "temperature"
   | "humidity"
   | "windSpeed"
-  | "uvIndex"
+  | "lightLevel"
   | "airQuality"
   | "pressure"
   | "rainfall";
@@ -122,7 +122,7 @@ export interface EnvironmentalScore {
 }
 
 export type InsightTone = "good" | "warning" | "info";
-export type InsightIcon = "temperature" | "humidity" | "wind" | "uv" | "air" | "rain";
+export type InsightIcon = "temperature" | "humidity" | "wind" | "light" | "air" | "rain";
 
 export interface Insight {
   id: string;
@@ -141,7 +141,7 @@ export interface AnalyticsResult {
   readings: EnvironmentalReading[];
   summary: Record<MetricKey, MetricSummary>;
   wind: WindSummary;
-  uvRisk: string;
+  lightLevelRisk: string;
   aqiCategory: AQICategory;
   score: EnvironmentalScore;
   insights: Insight[];

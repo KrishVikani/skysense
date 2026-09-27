@@ -50,7 +50,7 @@ export const FORECAST_UNITS: Record<string, string> = {
   humidity: "%",
   pressure: " hPa",
   airQuality: " AQI",
-  uvIndex: "",
+  lightLevel: "lx",
   windSpeed: " km/h",
   rainfall: " mm",
 };
@@ -85,7 +85,7 @@ export interface ForecastFeatures {
   windSpeed: MetricTrend;
   windDirection: MetricTrend;
   airQuality: MetricTrend;
-  uvIndex: MetricTrend;
+  lightLevel: MetricTrend;
   rainfall: MetricTrend;
   /** Dominant wind direction label over the window (e.g. "WSW"). */
   dominantWindLabel: string;
@@ -195,7 +195,7 @@ export interface ForecastResult {
   pressure: MetricForecast;
   windSpeed: MetricForecast;
   airQuality: MetricForecast;
-  uvIndex: MetricForecast;
+  lightLevel: MetricForecast;
   rainfall: MetricForecast;
   precipitation: PrecipitationOutlook;
   risk: ForecastRisk;

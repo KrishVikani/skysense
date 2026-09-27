@@ -19,7 +19,7 @@ const BREAKDOWN_LABELS: Record<string, string> = {
   temperature: "Temperature",
   humidity: "Humidity",
   airQuality: "Air Quality",
-  uvIndex: "UV Exposure",
+  lightLevel: "Light Level",
 };
 
 export function ScoreSection({ score }: ScoreSectionProps) {
@@ -84,7 +84,7 @@ export function ScoreSection({ score }: ScoreSectionProps) {
 
         <div>
           <h2 className="section-title">Environmental Score</h2>
-          <p className="section-subtitle mt-0.5">Aggregated from temperature, humidity, air quality and UV data</p>
+          <p className="section-subtitle mt-0.5">Aggregated from temperature, humidity, air quality and light level data</p>
           <p className="mt-4 text-foreground font-medium">{score.label}</p>
 
           <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">

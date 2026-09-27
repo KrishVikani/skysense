@@ -26,7 +26,7 @@ export interface StoredDeviceReading {
   humidity: number | null;
   pressure: number | null;
   airQuality: number | null;
-  uvIndex: number | null;
+  lightLevel: number | null;
   windSpeed: number | null;
   windDirection: number | null;
   rainfall: number | null;
@@ -63,7 +63,7 @@ export function buildStoredReading(
     humidity: telemetry.humidity,
     pressure: telemetry.pressure,
     airQuality: telemetry.airQuality,
-    uvIndex: telemetry.uvIndex,
+    lightLevel: telemetry.lightLevel,
     windSpeed: telemetry.windSpeed,
     windDirection: telemetry.windDirection,
     rainfall: telemetry.rainfall,

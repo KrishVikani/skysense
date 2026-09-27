@@ -49,12 +49,12 @@ export interface WeatherCurrent {
   windDirectionLabel: string;
   pressure: number;
   /**
-   * UV index and air quality are NOT provided by every source (OpenWeather
+   * Light level (lux) and air quality are NOT provided by every source (OpenWeather
    * exposes them through separate, paid endpoints). Optional so the UI can
    * show them only when the active source supplies them.
    */
-  uvIndex?: number;
-  uvRisk?: string;
+  lightLevel?: number;
+  lightLevelRisk?: string;
   airQuality?: number;
   aqiCategory?: string;
   /** Visibility in kilometres, when the source reports it. */

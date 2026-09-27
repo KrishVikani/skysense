@@ -87,7 +87,7 @@ export function mergeSettings(raw: unknown): UserSettings {
   const a = isRecord(raw.alerts) ? raw.alerts : {};
   if (typeof a.enabled === "boolean") out.alerts.enabled = a.enabled;
   if (isRecord(a.preferences)) {
-    for (const metric of ["temperature", "humidity", "windSpeed", "uvIndex", "airQuality"] as const) {
+    for (const metric of ["temperature", "humidity", "windSpeed", "lightLevel", "airQuality"] as const) {
       const pref = isRecord(a.preferences[metric]) ? a.preferences[metric] : {};
       const target = out.alerts.preferences[metric];
       if (typeof pref.enabled === "boolean") target.enabled = pref.enabled;
@@ -235,7 +235,7 @@ function cloneSettingsPreferences(prefs: AlertThresholdPreferences): AlertThresh
     temperature: { ...prefs.temperature },
     humidity: { ...prefs.humidity },
     windSpeed: { ...prefs.windSpeed },
-    uvIndex: { ...prefs.uvIndex },
+    lightLevel: { ...prefs.lightLevel },
     airQuality: { ...prefs.airQuality },
   };
 }

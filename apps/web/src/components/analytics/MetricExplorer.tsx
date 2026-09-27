@@ -21,7 +21,7 @@ const METRICS: Array<{
   { key: "temperature", label: "Temperature", color: "var(--color-sun)", formatter: (v) => `${v.toFixed(1)}°C` },
   { key: "humidity", label: "Humidity", color: "var(--color-sky)", formatter: (v) => `${v.toFixed(0)}%` },
   { key: "pressure", label: "Pressure", color: "var(--color-muted)", formatter: (v) => `${v.toFixed(1)} hPa` },
-  { key: "uvIndex", label: "UV Index", color: "var(--color-warning)", formatter: (v) => `${v.toFixed(1)}` },
+  { key: "lightLevel", label: "Light Level", color: "var(--color-warning)", formatter: (v) => `${v.toFixed(0)} lx` },
   { key: "rainfall", label: "Rainfall", color: "var(--color-accent)", formatter: (v) => `${v.toFixed(1)} mm` },
 ];
 

@@ -6,7 +6,7 @@ import type { WeatherCondition, WeatherConditionId } from "./types";
  * Weather experience.
  *
  * Nothing here is invented external data — every value is derived from the
- * existing environmental readings (temperature, humidity, uvIndex, rainfall).
+ * existing environmental readings (temperature, humidity, lightLevel, rainfall).
  * The mappings are transparent rules so a future real weather provider can
  * replace them without touching the UI.
  */
@@ -50,13 +50,13 @@ export function isNight(timestamp: string): boolean {
  *  - rainfall > 6 mm with humid air          → thunderstorm
  *  - rainfall > 0 mm                         → rain
  *  - night                                   → clear/rainy night
- *  - low UV or very humid                    → cloudy
- *  - moderate UV or humid                    → partly cloudy
+ *  - low light or very humid                 → cloudy
+ *  - moderate light or humid                 → partly cloudy
  *  - otherwise                               → sunny
  */
 export function conditionFromReading(reading: EnvironmentalReading): WeatherCondition {
   const rain = reading.rainfall ?? 0;
-  const uv = reading.uvIndex ?? 0;
+  const light = reading.lightLevel ?? 0;
   const humidity = reading.humidity ?? 0;
 
   if (rain > 0) {
@@ -65,8 +65,8 @@ export function conditionFromReading(reading: EnvironmentalReading): WeatherCond
     return WEATHER_CONDITIONS.rain;
   }
   if (isNight(reading.timestamp)) return WEATHER_CONDITIONS.night;
-  if (uv < 2 || humidity >= 75) return WEATHER_CONDITIONS.cloudy;
-  if (uv < 5 || humidity >= 60) return WEATHER_CONDITIONS["partly-cloudy"];
+  if (light < 500 || humidity >= 75) return WEATHER_CONDITIONS.cloudy;
+  if (light < 10000 || humidity >= 60) return WEATHER_CONDITIONS["partly-cloudy"];
   return WEATHER_CONDITIONS.sunny;
 }
 

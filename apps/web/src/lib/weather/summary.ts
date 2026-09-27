@@ -87,7 +87,7 @@ export interface WeatherInsight {
  */
 export function weatherInsights(data: WeatherCurrent): WeatherInsight[] {
   const insights: WeatherInsight[] = [];
-  const { humidity, windSpeed, visibilityKm, precipitationProbability, uvIndex, feelsLike, temperature } = data;
+  const { humidity, windSpeed, visibilityKm, precipitationProbability, lightLevel, feelsLike, temperature } = data;
 
   if (humidity >= 70) {
     insights.push({ id: "high-humidity", label: "Humid", detail: "Humidity is high — the air feels muggy.", tone: "sky" });
@@ -111,8 +111,8 @@ export function weatherInsights(data: WeatherCurrent): WeatherInsight[] {
     insights.push({ id: "rain-likely", label: "Rain likely", detail: "A good chance of rain — keep an umbrella handy.", tone: "sky" });
   }
 
-  if (uvIndex != null && uvIndex >= 6) {
-    insights.push({ id: "high-uv", label: "Strong sun", detail: "UV is high — protect your skin outdoors.", tone: "sun" });
+  if (lightLevel != null && lightLevel >= 50000) {
+    insights.push({ id: "high-light", label: "Bright", detail: "Light levels are very high — protect your eyes outdoors.", tone: "sun" });
   }
 
   if (Math.abs(feelsLike - temperature) >= 2) {

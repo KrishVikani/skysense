@@ -84,8 +84,8 @@ export default function AnalyticsScreen() {
               icon="🌬️"
             />
             <MetricCard
-              label="Max UV"
-              value={`${Math.max(...historical.map(h => h.uvIndex))}`}
+              label="Max Light"
+              value={`${Math.max(...historical.map(h => h.lightLevel))} lx`}
               icon="☀️"
             />
           </View>

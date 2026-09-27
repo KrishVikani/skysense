@@ -12,7 +12,7 @@ export type SensorKey =
   | "humidity"
   | "pressure"
   | "airQuality"
-  | "uvIndex"
+  | "lightLevel"
   | "rainfall"
   | "windSpeed"
   | "windDirection";

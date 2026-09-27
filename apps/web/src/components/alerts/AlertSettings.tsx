@@ -18,7 +18,7 @@ const METRIC_HELP: Record<MetricSettingKey, string> = {
   temperature: "Alert when the current temperature rises above the configured threshold.",
   humidity: "Alert when relative humidity rises above the configured threshold.",
   windSpeed: "Alert when wind speed rises above the configured threshold.",
-  uvIndex: "Alert when the UV index rises above the configured threshold.",
+  lightLevel: "Alert when the light level (lux) rises above the configured threshold.",
   airQuality: "Alert when the air quality index (AQI) rises above the configured threshold.",
 };
 

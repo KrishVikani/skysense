@@ -4,10 +4,10 @@ import { motion } from "framer-motion";
 import { Sun, Leaf } from "lucide-react";
 import type { AQICategory, MetricSummary } from "@/lib/environmental/types";
 
-interface UvAirQualityProps {
-  uv: MetricSummary;
+interface LightAirQualityProps {
+  lightLevel: MetricSummary;
   aqi: MetricSummary;
-  uvRisk: string;
+  lightLevelRisk: string;
   aqiCategory: AQICategory;
 }
 
@@ -25,20 +25,21 @@ const AQI_CATEGORY_LABEL: Record<AQICategory, string> = {
   Hazardous: "Hazardous",
 };
 
-function uvColor(value: number): string {
-  if (value < 3) return "var(--color-success)";
-  if (value < 6) return "var(--color-warning)";
+function lightColor(value: number): string {
+  if (value < 1000) return "var(--color-success)";
+  if (value < 10000) return "var(--color-warning)";
+  if (value < 50000) return "var(--color-danger)";
   return "var(--color-danger)";
 }
 
-export function UvAirQuality({ uv, aqi, uvRisk, aqiCategory }: UvAirQualityProps) {
+export function LightAirQuality({ lightLevel, aqi, lightLevelRisk, aqiCategory }: LightAirQualityProps) {
   const aqiColor = AQI_COLORS[aqiCategory];
-  const currentUvColor = uvColor(uv.current);
+  const currentLightColor = lightColor(lightLevel.current);
 
   return (
     <div>
       <div className="flex items-center gap-2 mb-4">
-        <h2 className="section-title">Air Quality &amp; UV</h2>
+        <h2 className="section-title">Air Quality & Light Level</h2>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <motion.div
@@ -53,31 +54,31 @@ export function UvAirQuality({ uv, aqi, uvRisk, aqiCategory }: UvAirQualityProps
               <Sun className="w-5 h-5" style={{ color: "var(--color-warning)" }} aria-hidden="true" />
             </div>
             <div>
-              <p className="metric-label">UV Index</p>
-              <p className="section-subtitle">Sun intensity</p>
+              <p className="metric-label">Light Level</p>
+              <p className="section-subtitle">Ambient illuminance (BH1750)</p>
             </div>
           </div>
           <span
             className="badge font-semibold"
             style={{ backgroundColor: "color-mix(in srgb, var(--color-warning) 15%, transparent)", color: "var(--color-warning)" }}
           >
-            {uvRisk}
+            {lightLevelRisk}
           </span>
         </div>
 
         <div className="flex items-baseline gap-1.5">
-          <span className="metric-value" style={{ color: currentUvColor }}>{uv.current.toFixed(1)}</span>
-          <span className="text-sm text-muted-foreground">current</span>
+          <span className="metric-value" style={{ color: currentLightColor }}>{lightLevel.current.toFixed(0)}</span>
+          <span className="text-sm text-muted-foreground">lx current</span>
         </div>
 
         <div className="space-y-1.5">
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Average</span>
-            <span className="text-foreground font-medium">{uv.average.toFixed(1)}</span>
+            <span className="text-foreground font-medium">{lightLevel.average.toFixed(0)} lx</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Peak</span>
-            <span className="text-foreground font-medium">{uv.max.toFixed(1)}</span>
+            <span className="text-foreground font-medium">{lightLevel.max.toFixed(0)} lx</span>
           </div>
         </div>
 
@@ -86,15 +87,15 @@ export function UvAirQuality({ uv, aqi, uvRisk, aqiCategory }: UvAirQualityProps
             <div
               className="h-full rounded-full transition-all duration-500"
               style={{
-                width: `${Math.min(100, (uv.max / 12) * 100)}%`,
+                width: `${Math.min(100, (lightLevel.max / 100000) * 100)}%`,
                 background: "linear-gradient(90deg, var(--color-success), var(--color-warning), var(--color-danger))",
               }}
             />
           </div>
           <div className="flex justify-between text-[10px] text-muted-foreground mt-1.5">
-            <span>0</span>
-            <span>Peak {uv.max.toFixed(1)}</span>
-            <span>12+</span>
+            <span>0 lx</span>
+            <span>Peak {lightLevel.max.toFixed(0)} lx</span>
+            <span>100k+ lx</span>
           </div>
         </div>
       </motion.div>

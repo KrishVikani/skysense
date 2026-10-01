@@ -64,6 +64,7 @@ export interface EnvironmentalReading {
   windSpeed: number;
   windDirection: number;
   lightLevel: number;
+  uvIndex?: number;
   airQuality: number;
   pressure: number;
   rainfall: number;
@@ -92,6 +93,7 @@ export type MetricKey =
   | "humidity"
   | "windSpeed"
   | "lightLevel"
+  | "uvIndex"
   | "airQuality"
   | "pressure"
   | "rainfall";
@@ -122,7 +124,7 @@ export interface EnvironmentalScore {
 }
 
 export type InsightTone = "good" | "warning" | "info";
-export type InsightIcon = "temperature" | "humidity" | "wind" | "light" | "air" | "rain";
+export type InsightIcon = "temperature" | "humidity" | "wind" | "light" | "air" | "rain" | "uv";
 
 export interface Insight {
   id: string;

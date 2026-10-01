@@ -86,6 +86,7 @@ export interface ForecastFeatures {
   windDirection: MetricTrend;
   airQuality: MetricTrend;
   lightLevel: MetricTrend;
+  uvIndex: MetricTrend;
   rainfall: MetricTrend;
   /** Dominant wind direction label over the window (e.g. "WSW"). */
   dominantWindLabel: string;

@@ -41,6 +41,7 @@ const INSIGHT_ID_BY_METRIC: Record<MetricSettingKey, string> = {
   windSpeed: "wind",
   lightLevel: "light",
   airQuality: "air",
+  uvIndex: "uv",
 };
 
 function digitsFor(metric: AlertMetric): number {
@@ -102,6 +103,7 @@ function evaluateWithRules(
 
   // Value-based metric rules (temperature, humidity, wind, UV, air quality).
   for (const metric of METRIC_SETTING_KEYS) {
+    if (metric === "uvIndex") continue; // uvIndex not in analytics.summary (MetricKey)
     const metricRules = rules.filter((r) => r.metric === metric && r.enabled);
     if (metricRules.length === 0) continue;
     const value = analytics.summary[metric].current;

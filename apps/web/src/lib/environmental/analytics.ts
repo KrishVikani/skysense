@@ -14,6 +14,7 @@ const UNITS: Record<MetricKey, string> = {
   humidity: "%",
   windSpeed: "km/h",
   uvIndex: "",
+  lightLevel: "lx",
   airQuality: "",
   pressure: " hPa",
   rainfall: " mm",
@@ -25,6 +26,7 @@ const TREND_THRESHOLDS: Record<MetricKey, number> = {
   humidity: 1.5,
   windSpeed: 0.8,
   uvIndex: 0.3,
+  lightLevel: 1000,
   airQuality: 3,
   pressure: 0.5,
   rainfall: 0.3,
@@ -35,6 +37,7 @@ const ALL_METRICS: MetricKey[] = [
   "humidity",
   "windSpeed",
   "uvIndex",
+  "lightLevel",
   "airQuality",
   "pressure",
   "rainfall",
@@ -76,8 +79,12 @@ export function uvRiskOf(uv: number): string {
   return "Extreme";
 }
 
+export const lightLevelRiskOf = uvRiskOf;
+
 function metricSummary(readings: EnvironmentalReading[], key: MetricKey): MetricSummary {
-  const values = readings.map((r) => r[key]);
+  const values = readings
+    .map((r) => r[key as keyof EnvironmentalReading])
+    .filter((v): v is number => typeof v === "number");
   const current = values[values.length - 1];
   const average = round1(mean(values));
   const min = Math.min(...values);
@@ -151,6 +158,7 @@ function environmentalScore(readings: EnvironmentalReading[], summary: Record<Me
       humidity,
       airQuality,
       uvIndex: uv,
+      lightLevel: 0,
       windSpeed: 0,
       pressure: 0,
       rainfall: 0,
@@ -200,7 +208,7 @@ function buildInsights(readings: EnvironmentalReading[], summary: Record<MetricK
   });
 
   // UV midday peak.
-  const peakUv = readings.reduce((a, b) => (b.uvIndex > a.uvIndex ? b : a), readings[0]);
+  const peakUv = readings.reduce((a, b) => ((b as EnvironmentalReading & { uvIndex: number }).uvIndex > (a as EnvironmentalReading & { uvIndex: number }).uvIndex ? b : a), readings[0]);
   const peakHour = new Date(peakUv.timestamp).getHours();
   insights.push({
     id: "uv",
@@ -286,7 +294,7 @@ export function computeAnalytics(readings: EnvironmentalReading[], range: TimeRa
     readings,
     summary,
     wind,
-    uvRisk,
+    lightLevelRisk: uvRisk,
     aqiCategory,
     score,
     insights,

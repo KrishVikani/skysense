@@ -17,6 +17,7 @@ const METRICS = [
   "windDirection",
   "airQuality",
   "lightLevel",
+  "uvIndex",
   "rainfall",
 ] as const;
 
@@ -28,6 +29,7 @@ const DIRECTION_DEADBANDS: Record<string, number> = {
   windSpeed: 0.5,
   airQuality: 2,
   lightLevel: 1000,
+  uvIndex: 0.3,
   rainfall: 0.2,
   windDirection: 8,
 };
@@ -40,6 +42,7 @@ const METRIC_BOUNDS: Record<string, [number, number]> = {
   windSpeed: [0, 200],
   airQuality: [0, 500],
   lightLevel: [0, 100000],
+  uvIndex: [0, 16],
   rainfall: [0, 1000],
   windDirection: [0, 360],
 };
@@ -352,6 +355,7 @@ export function extractFeatures(readings: EnvironmentalReading[]): ForecastFeatu
     windDirection: trends.windDirection,
     airQuality: trends.airQuality,
     lightLevel: trends.lightLevel,
+    uvIndex: trends.uvIndex,
     rainfall: trends.rainfall,
     dominantWindLabel: dominantWindLabel(sorted),
     rainLikelihood: rain.likelihood,

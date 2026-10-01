@@ -12,6 +12,7 @@ import { StationTelemetry } from "@/components/devices/StationTelemetry";
 import { StationHardwareStatus } from "@/components/devices/StationHardwareStatus";
 import {
   getDevicesSnapshot,
+  getLightweightDeviceSnapshot,
   DEVICES_POLL_INTERVAL_MS,
 } from "@/lib/devices/service";
 import { deriveConnectionState } from "@/lib/devices/heartbeat";
@@ -114,23 +115,36 @@ export default function MyStationPageClient() {
     return () => {
       cancelled = true;
     };
-  }, [reloadKey, settings.units, snapshot]);
+  }, [reloadKey, settings.units]);
 
-  // LIVE REFRESH: poll the snapshot at the user-configured interval (bounded in
-  // Settings). Paused while the tab is hidden and skipped when a request is in
-  // flight, so My Station never hammers the data layer.
+  // LIVE REFRESH: poll the lightweight snapshot at the user-configured interval
+  // (bounded in Settings). Paused while the tab is hidden and skipped when a
+  // request is in flight. This only fetches live device status + latest reading
+  // (no historical analytics), avoiding Firestore history reads.
   useEffect(() => {
     let cancelled = false;
-    const interval = setInterval(() => {
+    const interval = setInterval(async () => {
       if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
       if (inFlightRef.current) return;
-      setReloadKey((k) => k + 1);
+      inFlightRef.current = true;
+      try {
+        const nextSnapshot = await getLightweightDeviceSnapshot(snapshot);
+        if (!cancelled) {
+          setSnapshot(withDisplayUnits(nextSnapshot, settings.units));
+        }
+      } catch {
+        // Ignore errors during lightweight polling; full refresh will recover
+      } finally {
+        if (!cancelled) {
+          inFlightRef.current = false;
+        }
+      }
     }, pollIntervalMs);
     return () => {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [pollIntervalMs]);
+  }, [pollIntervalMs, snapshot, settings.units]);
 
   if (error && !hasLoaded) {
     return <MyStationError onRetry={refresh} />;

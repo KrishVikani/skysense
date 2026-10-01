@@ -156,6 +156,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
       humidity: { enabled: true, warningThreshold: 65, criticalThreshold: 78 },
       windSpeed: { enabled: true, warningThreshold: 22, criticalThreshold: 30 },
       lightLevel: { enabled: true, warningThreshold: 50000, criticalThreshold: 80000 },
+      uvIndex: { enabled: true, warningThreshold: 6, criticalThreshold: 8 },
       airQuality: { enabled: true, warningThreshold: 80, criticalThreshold: 120 },
     },
   },

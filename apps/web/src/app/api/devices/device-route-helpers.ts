@@ -125,14 +125,16 @@ export async function statusResponse(deviceId: string): Promise<NextResponse> {
     const connection = deriveConnectionState(storedHeartbeat.lastSeenAt);
     const connectionMode =
       connection === "online" ? "online" : connection === "stale" || connection === "offline" ? "offline" : "simulation";
+    const mode = connection === "online" ? "live" : "simulation";
+    const dataSource = connection === "online" ? "esp32" : "simulation";
     return NextResponse.json(
       {
         ok: true,
         deviceId,
         connection,
         connectionMode,
-        mode: "live",
-        dataSource: "esp32",
+        mode,
+        dataSource,
         dataSourceLabel: "ESP32 device telemetry",
         firmwareStatus: connection === "online" ? "Connected" : "Disconnected",
         firmwareVersion: storedHeartbeat.firmwareVersion ?? null,

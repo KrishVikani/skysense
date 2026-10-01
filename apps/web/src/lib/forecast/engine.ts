@@ -257,6 +257,7 @@ const volatilityByMetric: Record<string, number> = features
           windSpeed: features.windSpeed,
           airQuality: features.airQuality,
           lightLevel: features.lightLevel,
+          uvIndex: features.uvIndex,
         }
       : null;
 
@@ -390,6 +391,7 @@ function emptyFeatures(): ForecastFeatures {
     windDirection: emptyTrend("windDirection"),
     airQuality: emptyTrend("airQuality"),
     lightLevel: emptyTrend("lightLevel"),
+    uvIndex: emptyTrend("uvIndex"),
     rainfall: emptyTrend("rainfall"),
     dominantWindLabel: "Unknown",
     rainLikelihood: 0,

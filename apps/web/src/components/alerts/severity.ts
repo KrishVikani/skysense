@@ -86,6 +86,7 @@ export const METRIC_ICONS: Record<AlertMetric, LucideIcon> = {
   pressure: Gauge,
   rainfall: CloudRain,
   stability: Activity,
+  uvIndex: AlertTriangle,
 };
 
 export const METRIC_ACCENTS: Record<AlertMetric, string> = {
@@ -97,4 +98,5 @@ export const METRIC_ACCENTS: Record<AlertMetric, string> = {
   pressure: "var(--color-info)",
   rainfall: "var(--color-info)",
   stability: "var(--color-info)",
+  uvIndex: "var(--color-warning)",
 };

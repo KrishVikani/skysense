@@ -17,6 +17,7 @@ export const METRIC_SETTING_KEYS = [
   "humidity",
   "windSpeed",
   "uvIndex",
+  "lightLevel",
   "airQuality",
 ] as const;
 
@@ -27,6 +28,7 @@ export const METRIC_LABELS: Record<AlertMetric, string> = {
   humidity: "Humidity",
   windSpeed: "Wind Speed",
   uvIndex: "UV Index",
+  lightLevel: "Light Level",
   airQuality: "Air Quality",
   pressure: "Pressure",
   rainfall: "Rainfall",
@@ -38,6 +40,7 @@ export const METRIC_UNITS: Record<AlertMetric, string> = {
   humidity: "%",
   windSpeed: "km/h",
   uvIndex: "",
+  lightLevel: "lx",
   airQuality: " AQI",
   pressure: " hPa",
   rainfall: " mm",
@@ -222,6 +225,7 @@ const DEFAULT_RECOMMENDATIONS: Record<MetricSettingKey, string> = {
   humidity: "Monitor comfort levels and adjust indoor ventilation.",
   windSpeed: "Check wind exposure before outdoor plans.",
   uvIndex: "Apply sun protection when outdoors.",
+  lightLevel: "Consider shade and eye protection during bright conditions.",
   airQuality: "Limit outdoor exertion if conditions persist.",
 };
 
@@ -248,6 +252,7 @@ export function createDefaultSettings(): AlertSettings {
     humidity: make("humidity", "Humidity", "%"),
     windSpeed: make("windSpeed", "Wind Speed", "km/h"),
     uvIndex: make("uvIndex", "UV Index", ""),
+    lightLevel: make("lightLevel", "Light Level", "lx"),
     airQuality: make("airQuality", "Air Quality", " AQI"),
   };
 }
@@ -290,6 +295,7 @@ export function createDefaultPreferences(): AlertThresholdPreferences {
     humidity: make("humidity"),
     windSpeed: make("windSpeed"),
     uvIndex: make("uvIndex"),
+    lightLevel: make("lightLevel"),
     airQuality: make("airQuality"),
   };
 }
@@ -333,6 +339,7 @@ export function buildRulesFromPreferences(
 
   for (const rule of DEFAULT_RULES) {
     if (isSettingMetric(rule.metric)) {
+      if (rule.metric === "lightLevel") continue;
       const pref = preferences[rule.metric];
       if (!pref.enabled) continue;
       if (rule.severity === "warning") {

@@ -42,8 +42,8 @@ export function TrendChart({
   average,
   valueFormatter,
 }: TrendChartProps) {
-  const rawValues = data.map((r) => r[dataKey]);
-  const values = dataKey === "lightLevel"
+  const rawValues = data.map((r) => r[dataKey as keyof EnvironmentalReading]);
+  const values = dataKey === "lightLevel" || dataKey === "uvIndex"
     ? rawValues.filter((v): v is number => v !== null)
     : (rawValues as number[]);
   const domain = yDomain(values);

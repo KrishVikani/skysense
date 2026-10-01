@@ -17,6 +17,200 @@ import type {
   DeviceHealth,
 } from "./types";
 
+/** Lightweight device snapshot for live polling (no history/analytics fetch). */
+export async function getLightweightDeviceSnapshot(
+  previousSnapshot?: DeviceSnapshot | null
+): Promise<DeviceSnapshot> {
+  const provider = getEnvironmentalDataProvider();
+  const isEsp32 = provider.kind === "esp32";
+
+  // Fetch lightweight device status (heartbeat only, no analytics)
+  const apiStatus = await fetchDeviceStatus(ESP32_DEVICE_ID);
+
+  let connection: DeviceConnectionState;
+  let connectionMode: ConnectionMode;
+  let mode: DeviceMode;
+  let health: DeviceHealth;
+  let dataSourceKind: "esp32" | "simulation";
+
+  if (apiStatus && apiStatus.connection === "online") {
+    connection = "online";
+    connectionMode = apiStatus.connectionMode ?? "online";
+    mode = "live";
+    health = apiStatus.health ?? "healthy";
+    dataSourceKind = "esp32";
+  } else if (apiStatus) {
+    connection = apiStatus.connection ?? "not_connected";
+    connectionMode = apiStatus.connectionMode ?? "offline";
+    mode = apiStatus.mode ?? "simulation";
+    health = apiStatus.health ?? "unknown";
+    dataSourceKind = isEsp32 ? "esp32" : "simulation";
+  } else {
+    connection = "not_connected";
+    connectionMode = "offline";
+    mode = "simulation";
+    health = "unknown";
+    dataSourceKind = "simulation";
+  }
+
+  const now = new Date().toISOString();
+
+  // Fetch latest reading from lightweight endpoint
+  interface LatestReadingResponse {
+    ok: boolean;
+    deviceId: string;
+    reading: {
+      timestamp: string;
+      location?: string;
+      firmwareVersion?: string;
+      sensorStatus?: string;
+      temperature: number | null;
+      humidity: number | null;
+      pressure: number | null;
+      airQuality: number | null;
+      lightLevel: number | null;
+      windSpeed: number | null;
+      windDirection: number | null;
+      rainfall: number | null;
+    } | null;
+  }
+
+  let latestReading: LatestReadingResponse["reading"] | null = null;
+  try {
+    const res = await fetch(`/api/devices/${ESP32_DEVICE_ID}/data/latest`, {
+      cache: "no-store",
+    });
+    if (res.ok) {
+      const data: LatestReadingResponse = await res.json();
+      latestReading = data.reading;
+    }
+  } catch {
+    // Ignore - will use previous snapshot or simulation
+  }
+
+  // If we have real ESP32 data and a latest reading, build sensors from it
+  if (latestReading && isEsp32) {
+    const sensors = SENSOR_DEFINITIONS.map((def) => {
+      const value = latestReading[def.key] as number | null;
+      return {
+        key: def.key,
+        label: def.label,
+        hardwareComponent: def.hardwareComponent,
+        unit: def.unit,
+        dataType: def.dataType,
+        validRange: def.validRange,
+        status: (latestReading?.sensorStatus as any) ?? "available",
+        value,
+        valueLabel: value !== null ? value.toFixed(def.key === "lightLevel" ? 0 : 1) : "—",
+        lastUpdated: latestReading.timestamp ?? now,
+        description: def.description,
+      };
+    });
+
+    const reportingSensors = sensors.filter((s) => s.value !== null).length;
+    const healthySensorCount = sensors.filter(
+      (s) => s.value !== null && s.status !== "error" && s.status !== "stale"
+    ).length;
+
+    return {
+      deviceId: ESP32_DEVICE_ID,
+      deviceName: ESP32_DEVICE_NAME,
+      location: (latestReading.location as string) ?? ESP32_DEVICE_LOCATION,
+      connection,
+      connectionMode,
+      mode,
+      health,
+      dataSource: provider.label,
+      dataSourceKind,
+      firmwareStatus: apiStatus?.firmwareStatus ?? "Connected",
+      lastUpdated: latestReading.timestamp ?? now,
+      dataAgeMs: 0,
+      isStale: false,
+      lastSeen: apiStatus?.lastSeen ?? null,
+      lastSeenAgeMs: apiStatus?.lastSeenAgeMs ?? null,
+      firmwareVersion: apiStatus?.firmwareVersion ?? (latestReading.firmwareVersion as string) ?? null,
+      sensorCount: sensors.length,
+      reportingSensors,
+      connectedSensors: sensors.filter((s) => s.status === "available").length,
+      healthySensorCount,
+      sensors,
+      dataQuality: "good",
+    };
+  }
+
+  // Fallback: preserve previous real telemetry if available, else return simulation snapshot
+  if (previousSnapshot && previousSnapshot.mode === "live" && previousSnapshot.sensors.some((s) => s.value !== null)) {
+    const preservedSensors = previousSnapshot.sensors.map((sensor) => ({
+      ...sensor,
+      status: "stale" as const,
+      lastUpdated: sensor.lastUpdated,
+    }));
+
+    return {
+      deviceId: ESP32_DEVICE_ID,
+      deviceName: ESP32_DEVICE_NAME,
+      location: previousSnapshot.location,
+      connection,
+      connectionMode,
+      mode: "live",
+      health,
+      dataSource: provider.label,
+      dataSourceKind: "esp32",
+      firmwareStatus: apiStatus?.firmwareStatus ?? "Disconnected",
+      lastUpdated: previousSnapshot.lastUpdated,
+      dataAgeMs: Date.now() - new Date(previousSnapshot.lastUpdated).getTime(),
+      isStale: true,
+      lastSeen: apiStatus?.lastSeen ?? previousSnapshot.lastSeen ?? null,
+      lastSeenAgeMs: apiStatus?.lastSeenAgeMs ?? previousSnapshot.lastSeenAgeMs ?? null,
+      firmwareVersion: apiStatus?.firmwareVersion ?? previousSnapshot.firmwareVersion ?? null,
+      sensorCount: preservedSensors.length,
+      reportingSensors: preservedSensors.filter((s) => s.value !== null).length,
+      connectedSensors: 0,
+      healthySensorCount: 0,
+      sensors: preservedSensors,
+      dataQuality: "disconnected",
+    };
+  }
+
+  // Simulation fallback
+  return {
+    deviceId: ESP32_DEVICE_ID,
+    deviceName: ESP32_DEVICE_NAME,
+    location: ESP32_DEVICE_LOCATION,
+    connection,
+    connectionMode,
+    mode,
+    health,
+    dataSource: isEsp32 ? provider.label : DEVICES_DATA_SOURCE,
+    dataSourceKind,
+    firmwareStatus: isEsp32 ? "Disconnected" : DEVICES_FIRMWARE_STATUS,
+    lastUpdated: now,
+    dataAgeMs: Number.POSITIVE_INFINITY,
+    isStale: true,
+    lastSeen: null,
+    lastSeenAgeMs: null,
+    firmwareVersion: null,
+    sensorCount: SENSOR_DEFINITIONS.length,
+    reportingSensors: 0,
+    connectedSensors: 0,
+    healthySensorCount: 0,
+    sensors: SENSOR_DEFINITIONS.map((def) => ({
+      key: def.key,
+      label: def.label,
+      hardwareComponent: def.hardwareComponent,
+      unit: def.unit,
+      dataType: def.dataType,
+      validRange: def.validRange,
+      status: "not_connected" as const,
+      value: null,
+      valueLabel: "—",
+      lastUpdated: now,
+      description: def.description,
+    })),
+    dataQuality: isEsp32 ? "disconnected" : "simulated",
+  };
+}
+
 /**
  * Source label shown by the Devices module. Mirrors the Intelligence and
  * Alerts source labels so the product is consistent.

@@ -14,7 +14,7 @@ interface AlertSettingsProps {
 
 const SEVERITY_OPTIONS: AlertSeverity[] = ["info", "warning", "critical"];
 
-const METRIC_HELP: Record<MetricSettingKey, string> = {
+const METRIC_HELP: Partial<Record<MetricSettingKey, string>> = {
   temperature: "Alert when the current temperature rises above the configured threshold.",
   humidity: "Alert when relative humidity rises above the configured threshold.",
   windSpeed: "Alert when wind speed rises above the configured threshold.",
@@ -65,7 +65,12 @@ export function AlertSettings({ settings, onUpdate, onReset }: AlertSettingsProp
       </div>
 
       <div className="mt-5 space-y-3">
-        {METRIC_SETTING_KEYS.map((metric) => {
+        {METRIC_SETTING_KEYS
+          .filter(
+            (metric): metric is Exclude<MetricSettingKey, "uvIndex"> =>
+              metric !== "uvIndex" && metric in METRIC_HELP && metric in METRIC_ICONS
+          )
+          .map((metric) => {
           const setting = settings[metric];
           const Icon = METRIC_ICONS[metric];
           const accent = setting.enabled ? "var(--color-accent)" : "var(--color-muted)";

@@ -16,6 +16,7 @@ const ICONS: Record<InsightIcon, ComponentType<{ className?: string; style?: CSS
   light: Sun,
   air: Leaf,
   rain: CloudRain,
+  uv: Lightbulb,
 };
 
 const TONE_STYLES: Record<InsightTone, { color: string; label: string }> = {

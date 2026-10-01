@@ -8,7 +8,7 @@ export type AlertDirection = "above" | "below";
  * Alertable environmental metrics. `stability` is derived from the AI risk
  * assessment (weather stability score 0–100) rather than a raw sensor field.
  */
-export type AlertMetric = MetricKey | "stability";
+export type AlertMetric = MetricKey | "stability" | "uvIndex";
 
 /** A single configurable alert rule (threshold, severity, message). */
 export interface AlertRule {
@@ -69,7 +69,7 @@ export interface AlertSummary {
  * for now; the structure is shaped so a backend can persist them later.
  */
 export interface AlertThresholdSetting {
-  metric: "temperature" | "humidity" | "windSpeed" | "lightLevel" | "airQuality";
+  metric: "temperature" | "humidity" | "windSpeed" | "lightLevel" | "uvIndex" | "airQuality";
   label: string;
   unit: string;
   enabled: boolean;
@@ -78,7 +78,7 @@ export interface AlertThresholdSetting {
 }
 
 export type AlertSettings = Record<
-  "temperature" | "humidity" | "windSpeed" | "lightLevel" | "airQuality",
+  "temperature" | "humidity" | "windSpeed" | "lightLevel" | "uvIndex" | "airQuality",
   AlertThresholdSetting
 >;
 
@@ -98,7 +98,7 @@ export interface AlertThresholdPreference {
 }
 
 export type AlertThresholdPreferences = Record<
-  "temperature" | "humidity" | "windSpeed" | "lightLevel" | "airQuality",
+  "temperature" | "humidity" | "windSpeed" | "lightLevel" | "uvIndex" | "airQuality",
   AlertThresholdPreference
 >;
 

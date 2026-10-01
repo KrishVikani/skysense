@@ -439,7 +439,9 @@ function buildRecommendations(summary: Record<MetricKey, MetricSummary>, risks: 
 // ---- Trend intelligence ----------------------------------------------------
 
 function classifyTrend(key: MetricKey, readings: EnvironmentalReading[]): TrendInfo {
-  const values = readings.map((r) => r[key]);
+  const values = readings
+    .map((r) => r[key as keyof EnvironmentalReading])
+    .filter((v): v is number => typeof v === "number");
   const half = Math.max(1, Math.floor(values.length / 2));
   const firstAvg = mean(values.slice(0, half));
   const lastAvg = mean(values.slice(half));

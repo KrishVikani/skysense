@@ -166,10 +166,9 @@ export class Esp32DataSourceProvider implements DataSourceProvider {
 
       return computeAnalytics(readings, range);
     } catch (error) {
-      console.warn("[EnvironmentalProvider] ESP32 analytics failed; marking provider unavailable and falling back to mock", error);
+      console.warn("[EnvironmentalProvider] ESP32 analytics failed; marking provider unavailable", error);
       this.onUnavailable();
-      // Return mock analytics instead of throwing, so the current request succeeds
-      return mockEnvironmentalDataProvider.fetchAnalytics(range);
+      throw error;
     }
   }
 }

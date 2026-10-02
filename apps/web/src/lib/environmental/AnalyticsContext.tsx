@@ -55,11 +55,16 @@ export function AnalyticsProvider({ children, defaultRange = "24h" }: AnalyticsP
 
     const now = Date.now();
     const cached = cacheRef.current;
+    
+    // Cache hit - hydrate state immediately
     if (
       cached.data &&
       cached.range === range &&
       now - cached.fetchedAt < CACHE_TTL_MS
     ) {
+      setAnalytics(cached.data);
+      setLoading(false);
+      setError(false);
       return;
     }
 
@@ -67,9 +72,12 @@ export function AnalyticsProvider({ children, defaultRange = "24h" }: AnalyticsP
     if (cached.promise && cached.range === range) {
       try {
         const data = await cached.promise;
+        // Hydrate state from in-flight request
         if (!cacheRef.current.data || cacheRef.current.range !== range) {
           setAnalytics(data);
         }
+        setLoading(false);
+        setError(false);
         return;
       } catch {
         // fall through to new fetch
@@ -95,6 +103,7 @@ export function AnalyticsProvider({ children, defaultRange = "24h" }: AnalyticsP
       if (cacheRef.current.promise === promise) {
         setAnalytics(data);
       }
+      setError(false);
     } catch (err) {
       setError(true);
     } finally {

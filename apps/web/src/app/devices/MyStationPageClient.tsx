@@ -84,17 +84,31 @@ export default function MyStationPageClient() {
     setReloadKey((k) => k + 1);
   };
 
+  // Fetch analytics lazily for components that need it (StationTelemetry, StationSensorGrid)
+  useEffect(() => {
+    let cancelled = false;
+    getEnvironmentalAnalytics("24h")
+      .then((data) => {
+        if (!cancelled) setAnalytics(data);
+      })
+      .catch(() => {
+        // Analytics is optional for My Station - don't block UI
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     inFlightRef.current = true;
     setError(false);
     setRefreshing(true);
 
-    Promise.all([getDevicesSnapshot(snapshot), getEnvironmentalAnalytics("24h")])
-      .then(([nextSnapshot, nextAnalytics]) => {
+    getDevicesSnapshot(snapshot)
+      .then((nextSnapshot) => {
         if (cancelled) return;
         setSnapshot(withDisplayUnits(nextSnapshot, settings.units));
-        setAnalytics(nextAnalytics);
         setHasLoaded(true);
         if (announceNextRef.current) {
           announceNextRef.current = false;

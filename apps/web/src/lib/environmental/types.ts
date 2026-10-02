@@ -63,7 +63,7 @@ export interface EnvironmentalReading {
   humidity: number;
   windSpeed: number;
   windDirection: number;
-  lightLevel: number;
+  lightLevel: number | null;
   uvIndex?: number;
   airQuality: number;
   pressure: number;

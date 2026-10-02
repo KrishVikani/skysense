@@ -110,7 +110,7 @@ export class Esp32DataSourceProvider implements DataSourceProvider {
       humidity: reading.humidity ?? 0,
       windSpeed: reading.windSpeed ?? 0,
       windDirection: reading.windDirection ?? 0,
-      lightLevel: reading.lightLevel ?? 0,
+      lightLevel: reading.lightLevel,
       airQuality: reading.airQuality ?? 0,
       pressure: reading.pressure ?? 0,
       rainfall: reading.rainfall ?? 0,
@@ -166,9 +166,10 @@ export class Esp32DataSourceProvider implements DataSourceProvider {
 
       return computeAnalytics(readings, range);
     } catch (error) {
-      console.warn("[EnvironmentalProvider] ESP32 analytics failed; marking provider unavailable", error);
+      console.warn("[EnvironmentalProvider] ESP32 analytics failed; marking provider unavailable and falling back to mock", error);
       this.onUnavailable();
-      throw error;
+      // Return mock analytics instead of throwing, so the current request succeeds
+      return mockEnvironmentalDataProvider.fetchAnalytics(range);
     }
   }
 }

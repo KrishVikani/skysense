@@ -235,7 +235,8 @@ const SENSOR_DIGITS: Partial<Record<SensorKey, number>> = {
   rainfall: 1,
 };
 
-function formatSensorValue(key: SensorKey, value: number): string {
+function formatSensorValue(key: SensorKey, value: number | null): string {
+  if (value === null) return "—";
   const digits = SENSOR_DIGITS[key] ?? 0;
   return value.toFixed(digits);
 }

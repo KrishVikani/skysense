@@ -84,7 +84,11 @@ function dailyOutlook(readings: EnvironmentalReading[]): WeatherDailyItem[] {
       const rainy = rainfall.some((r) => r > 0);
       const representative = rainy
         ? dayReadings.reduce((a, b) => (a.rainfall > b.rainfall ? a : b))
-        : dayReadings.reduce((a, b) => (a.lightLevel > b.lightLevel ? a : b));
+        : dayReadings.reduce((a, b) => {
+            const aLight = a.lightLevel ?? -1;
+            const bLight = b.lightLevel ?? -1;
+            return aLight > bLight ? a : b;
+          });
       return {
         date,
         condition: conditionFromReading(representative),
@@ -140,7 +144,7 @@ export class SimulatedWeatherProvider implements WeatherProvider {
       humidity: latest.humidity,
       windSpeed: latest.windSpeed,
       windDirectionLabel: compassLabel(latest.windDirection),
-      lightLevel: latest.lightLevel,
+      lightLevel: latest.lightLevel ?? undefined,
       lightLevelRisk: lightLevelRiskOf(latest.lightLevel),
       airQuality: latest.airQuality,
       aqiCategory: aqiCategoryOf(latest.airQuality),

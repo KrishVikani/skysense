@@ -95,7 +95,7 @@ export function AnalyticsProvider({ children, defaultRange = "24h" }: AnalyticsP
       }
     } catch (err) {
       setError(true);
-      throw err;
+      // Don't re-throw - error state is set, loading will be cleared in finally
     } finally {
       setLoading(false);
     }

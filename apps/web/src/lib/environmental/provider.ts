@@ -31,6 +31,8 @@ export interface DataSourceProvider {
   fetchReadings(_range: TimeRange): Promise<EnvironmentalReading[]>;
   /** Fetches a fully computed analytics result for the given range. */
   fetchAnalytics(_range: TimeRange): Promise<AnalyticsResult>;
+  /** Optional callback when this provider becomes unavailable. */
+  onUnavailable?: () => void;
 }
 
 /**
@@ -76,10 +78,12 @@ export class Esp32DataSourceProvider implements DataSourceProvider {
   readonly label = "ESP32 device telemetry";
   readonly kind = "esp32" as const;
 
-  private readonly deviceId: string;
+  readonly deviceId: string;
+  readonly onUnavailable: () => void;
 
-  constructor(deviceId: string = ESP32_DEVICE_ID) {
+  constructor(deviceId: string = ESP32_DEVICE_ID, onUnavailable?: () => void) {
     this.deviceId = deviceId;
+    this.onUnavailable = onUnavailable ?? (() => {});
   }
 
   private apiBase(): string {
@@ -153,15 +157,19 @@ export class Esp32DataSourceProvider implements DataSourceProvider {
   }
 
   async fetchAnalytics(range: TimeRange): Promise<AnalyticsResult> {
-    const readings = await this.fetchReadings(range);
+    try {
+      const readings = await this.fetchReadings(range);
 
-    if (readings.length === 0) {
-      // No telemetry yet — return a minimal AnalyticsResult so UI doesn't crash
-      // The Devices page will show "no data" state via the existing logic
-      throw new Error("No ESP32 telemetry available yet");
+      if (readings.length === 0) {
+        throw new Error("No ESP32 telemetry available yet");
+      }
+
+      return computeAnalytics(readings, range);
+    } catch (error) {
+      console.warn("[EnvironmentalProvider] ESP32 analytics failed; marking provider unavailable", error);
+      this.onUnavailable();
+      throw error;
     }
-
-    return computeAnalytics(readings, range);
   }
 }
 
@@ -247,7 +255,12 @@ export async function tryActivateEsp32Provider(): Promise<void> {
     if (!data.ok) throw new Error("Device status invalid");
     if (data.connection !== "online") throw new Error("Device not online");
     // API is available and device is online — switch to ESP32 provider
-    setEnvironmentalDataProvider(new Esp32DataSourceProvider());
+    setEnvironmentalDataProvider(
+      new Esp32DataSourceProvider(ESP32_DEVICE_ID, () => {
+        console.warn("[EnvironmentalProvider] ESP32 provider became unavailable; switching back to mock");
+        setEnvironmentalDataProvider(mockEnvironmentalDataProvider);
+      })
+    );
   } catch {
     // Keep mock provider; caller may retry later if desired.
     // No-op: mock provider stays active.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   AlertTriangle,
@@ -22,12 +22,14 @@ import { formatTime } from "@/components/alerts/format";
 import { SEVERITY_COLOR, topSeverityOf } from "@/components/alerts/severity";
 import { createDefaultSettings, createDefaultPreferences } from "@/lib/alerts/rules";
 import type { MetricSettingKey } from "@/lib/alerts/rules";
-import { getAlertsSnapshot, getAlertsSnapshotWithPreferences } from "@/lib/alerts/service";
+import { evaluateAlertRules, evaluateAlertRulesWithPreferences, generateMockHistory, computeAlertSummary } from "@/lib/alerts/service";
+import { generateEnvironmentalIntelligence } from "@/lib/intelligence/service";
 import { ALERTS_DATA_SOURCE } from "@/lib/alerts/service";
 import { fetchDeviceStatus } from "@/lib/devices/service";
 import { ESP32_DEVICE_ID } from "@/lib/devices/contract";
 import { useSettings } from "@/components/SettingsProvider";
 import { alertPrefsToSettings, applyAlertEditToPrefs } from "@/lib/settings/service";
+import { useAnalyticsContext } from "@/lib/environmental/AnalyticsContext";
 import type {
   AlertSettings as AlertSettingsType,
   AlertSummary,
@@ -83,6 +85,7 @@ function AlertsError({ onRetry }: { onRetry: () => void }) {
 }
 
 export default function AlertsPageClient() {
+  const { analytics, loading: analyticsLoading, error: analyticsError, refresh, providerKind } = useAnalyticsContext();
   const [settings, setSettings] = useState<AlertSettingsType>(createDefaultSettings);
   const settingsRef = useRef(settings);
   const prefsRef = useRef<AlertThresholdPreferences | null>(null);
@@ -154,6 +157,25 @@ export default function AlertsPageClient() {
     setReloadKey((k) => k + 1);
   }, [hydrated, settingsLoaded, userAlertPrefs]);
 
+  const evaluateAlerts = useCallback(() => {
+    if (!analytics) return;
+    try {
+      const aiAnalysis = generateEnvironmentalIntelligence(analytics);
+      const newActive = prefsRef.current
+        ? evaluateAlertRulesWithPreferences(analytics, aiAnalysis, prefsRef.current)
+        : evaluateAlertRules(analytics, aiAnalysis, settingsRef.current);
+      const newHistory = generateMockHistory(analytics.location);
+      const newSummary = computeAlertSummary(newActive, newHistory);
+      setActive(newActive);
+      setHistory(newHistory);
+      setSummary(newSummary);
+      setLocation(analytics.location);
+      setLastEvaluated(new Date().toISOString());
+    } catch {
+      setError(true);
+    }
+  }, [analytics]);
+
   useEffect(() => {
     if (!hydrated) return;
     let cancelled = false;
@@ -161,35 +183,16 @@ export default function AlertsPageClient() {
     setRefreshing(true);
     setError(false);
 
-    const snapshotPromise = prefsRef.current
-      ? getAlertsSnapshotWithPreferences(prefsRef.current)
-      : getAlertsSnapshot(settingsRef.current);
-
-    snapshotPromise
-      .then((snapshot) => {
-        if (cancelled) return;
-        setActive(snapshot.active);
-        setHistory(snapshot.history);
-        setSummary(snapshot.summary);
-        setLocation(snapshot.location);
-        setLastEvaluated(snapshot.lastEvaluated);
-        hasLoadedRef.current = true;
-        setHasLoaded(true);
-      })
-      .catch(() => {
-        if (!cancelled) setError(true);
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-          setRefreshing(false);
-        }
-      });
+    if (analytics) {
+      evaluateAlerts();
+      hasLoadedRef.current = true;
+      setHasLoaded(true);
+    }
 
     return () => {
       cancelled = true;
     };
-  }, [reloadKey, hydrated]);
+  }, [reloadKey, hydrated, analytics, evaluateAlerts]);
 
   // Fetch device status once on mount to determine the authoritative live/simulation state.
   useEffect(() => {
@@ -326,16 +329,16 @@ export default function AlertsPageClient() {
     );
   }
 
-  const filteredActive = filter === "all" ? active : active.filter((a) => a.severity === filter);
+const filteredActive = filter === "all" ? active : active.filter((a) => a.severity === filter);
   const topSeverity = summary ? topSeverityOf(summary) : null;
   const topColor = topSeverity ? SEVERITY_COLOR[topSeverity] : "var(--color-success)";
-  const isLive = deviceStatus?.connection === "online" && deviceStatus?.dataSource === "esp32";
-  const isOffline = deviceStatus?.connection !== "online" && deviceStatus?.dataSource === "esp32";
+  const isLive = deviceStatus?.connection === "online" && providerKind === "esp32";
+  const isOffline = deviceStatus?.connection !== "online" && providerKind === "esp32";
   const alertsDataSource = isLive ? "ESP32 device telemetry" : ALERTS_DATA_SOURCE;
   const isDeviceConnected = isLive;
   const deviceStatusLabel = isDeviceConnected ? "LIVE ESP32 Telemetry" : "Device Not Connected";
-  const deviceStatusDescription = isDeviceConnected 
-    ? "" 
+  const deviceStatusDescription = isDeviceConnected
+    ? ""
     : "ESP32 is offline — live telemetry unavailable";
 
   return (
@@ -469,11 +472,12 @@ export default function AlertsPageClient() {
               Location: <span className="text-foreground font-medium">{location}</span>
             </span>
           </div>
-          <p className="px-1 text-[11px] text-muted-foreground leading-relaxed">
+<p className="px-1 text-[11px] text-muted-foreground leading-relaxed">
             {isLive
               ? "Alerts are generated by SKYSENSE's rule engine from live ESP32 telemetry. Acknowledge and resolve actions are local to this session."
-              : "Alerts are generated by SKYSENSE's rule engine. ESP32 is offline — live telemetry unavailable. Acknowledge and resolve actions are local to this session."
-            }
+              : providerKind === "esp32"
+              ? "Alerts are generated by SKYSENSE's rule engine. ESP32 is offline — live telemetry unavailable. Acknowledge and resolve actions are local to this session."
+              : "Alerts are generated by SKYSENSE's rule engine on simulated data. ESP32 is not connected. Acknowledge and resolve actions are local to this session."}
           </p>
         </div>
 

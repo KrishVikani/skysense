@@ -12,10 +12,9 @@ import { LightRainSection } from "@/components/analytics/LightRainSection";
 import { ScoreSection } from "@/components/analytics/ScoreSection";
 import { InsightsSection } from "@/components/analytics/InsightsSection";
 import { Freshness } from "@/components/analytics/Freshness";
-import { getEnvironmentalAnalytics } from "@/lib/environmental/service";
-import { getEnvironmentalDataProvider } from "@/lib/environmental/provider";
 import { fetchDeviceStatus } from "@/lib/devices/service";
 import { ESP32_DEVICE_ID } from "@/lib/devices/contract";
+import { useAnalyticsContext } from "@/lib/environmental/AnalyticsContext";
 import type { AnalyticsResult, MetricKey, TimeRange } from "@/lib/environmental/types";
 
 function AnalyticsSkeleton() {
@@ -60,9 +59,6 @@ function AnalyticsError({ onRetry }: { onRetry: () => void }) {
 export default function AnalyticsPageClient() {
   const [range, setRange] = useState<TimeRange>("24h");
   const [activeMetric, setActiveMetric] = useState<MetricKey>("temperature");
-  const [result, setResult] = useState<AnalyticsResult | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [deviceStatus, setDeviceStatus] = useState<{
     connection: string;
@@ -71,47 +67,12 @@ export default function AnalyticsPageClient() {
     lastSeen: string | null;
   } | null>(null);
 
-  const dataProvider = getEnvironmentalDataProvider();
-  const providerKind = dataProvider.kind;
+  const { analytics, loading, error, refresh, providerKind } = useAnalyticsContext();
 
-  // Track provider kind changes via ref so Analytics re-fetches when the
-  // EnvironmentalProvider switches from mock → esp32, even if the component
-  // does not re-render. This reuses the existing global provider state already
-  // managed by EnvironmentalProvider — no new polling, no duplicate logic.
-  const providerKindRef = useRef(providerKind);
-  providerKindRef.current = dataProvider.kind;
-
+  // Trigger refresh when range changes
   useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(false);
-
-    getEnvironmentalAnalytics(range)
-      .then((data) => {
-        if (cancelled) return;
-        setResult(data);
-      })
-      .catch(() => {
-        if (!cancelled) setError(true);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [range, reloadKey]);
-
-  // Re-fetch analytics when the environmental provider switches from mock to ESP32.
-  // Depend on the ref so we detect the switch even if the component does not re-render.
-  useEffect(() => {
-    if (providerKindRef.current === "esp32") {
-      getEnvironmentalAnalytics(range).then((data) => {
-        setResult(data);
-      });
-    }
-  }, [range]);
+    refresh(range);
+  }, [range, refresh]);
 
   // Fetch device status once on mount to determine the authoritative live/simulation state.
   useEffect(() => {
@@ -153,17 +114,9 @@ export default function AnalyticsPageClient() {
 
   // Determine the live/simulation banner state from the authoritative device status.
   const isDeviceOnline = deviceStatus?.connection === "online";
-  const bannerIsLive = isDeviceOnline && deviceStatus?.dataSource === "esp32";
+  const bannerIsLive = isDeviceOnline && providerKind === "esp32";
 
-  // Re-fetch analytics when the environmental provider switches from mock to ESP32.
-  // Depend on the ref so we detect the switch even if the component does not re-render.
-  useEffect(() => {
-    if (providerKindRef.current === "esp32") {
-      getEnvironmentalAnalytics(range).then((data) => {
-        setResult(data);
-      });
-    }
-  }, [range]);
+  const result = analytics;
 
   if (error && !result) {
     return <AnalyticsError onRetry={() => setReloadKey((k) => k + 1)} />;
@@ -190,9 +143,8 @@ export default function AnalyticsPageClient() {
   }
 
   const quality = result.readings[0]?.dataQuality ?? "simulated";
-  const isEsp32 = result.dataSource === "esp32";
   const badgeClass = bannerIsLive ? "badge badge-success" : "badge badge-warning";
-  const badgeLabel = isEsp32 ? "LIVE ESP32 Telemetry" : "Device Not Connected";
+  const badgeLabel = providerKind === "esp32" ? "LIVE ESP32 Telemetry" : "Device Not Connected";
 
   return (
     <DashboardShell atmosphere="analytics">

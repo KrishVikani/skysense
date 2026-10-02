@@ -51,6 +51,22 @@ function isObject(value: unknown): value is Record<string, unknown> {
 }
 
 /**
+ * Extracts light level value from payload, accepting common firmware aliases.
+ * Canonical field is "lightLevel"; aliases "lux" and "light" are supported
+ * for firmware compatibility. Returns the first valid finite number found,
+ * or undefined if none present.
+ */
+function extractLightLevel(input: Record<string, unknown>): number | undefined {
+  const canonical = input.lightLevel;
+  if (isFiniteNumber(canonical)) return canonical;
+  const lux = input.lux;
+  if (isFiniteNumber(lux)) return lux;
+  const light = input.light;
+  if (isFiniteNumber(light)) return light;
+  return undefined;
+}
+
+/**
  * Validates a raw ESP32 telemetry payload (the wire format from the future
  * firmware). deviceId and timestamp are required; every sensor field may be a
  * number within its valid range, or null/absent to signal "not reporting".
@@ -79,7 +95,12 @@ export function validateDeviceTelemetry(
   }
 
   for (const field of SENSOR_KEYS) {
-    const value = input[field];
+    let value: unknown;
+    if (field === "lightLevel") {
+      value = extractLightLevel(input);
+    } else {
+      value = input[field];
+    }
     if (value === null || value === undefined) {
       // Absent sensor: allowed, preserved as null, never coerced to zero.
       continue;
@@ -110,6 +131,7 @@ export function validateDeviceTelemetry(
     return { ok: false, errors };
   }
 
+  const lightLevelValue = extractLightLevel(input);
   const data: ESP32Telemetry = {
     deviceId: input.deviceId as string,
     timestamp: input.timestamp as string,
@@ -117,7 +139,7 @@ export function validateDeviceTelemetry(
     humidity: input.humidity === undefined ? null : (input.humidity as number | null),
     pressure: input.pressure === undefined ? null : (input.pressure as number | null),
     airQuality: input.airQuality === undefined ? null : (input.airQuality as number | null),
-    lightLevel: input.lightLevel === undefined ? null : (input.lightLevel as number | null),
+    lightLevel: lightLevelValue === undefined ? null : lightLevelValue,
     windSpeed: input.windSpeed === undefined ? null : (input.windSpeed as number | null),
     windDirection: input.windDirection === undefined ? null : (input.windDirection as number | null),
     rainfall: input.rainfall === undefined ? null : (input.rainfall as number | null),
@@ -158,7 +180,12 @@ export function validateEnvironmentalData(input: unknown): ValidationResult {
 
   // Required numeric sensor fields with their valid ranges.
   for (const field of SENSOR_KEYS) {
-    const value = raw[field];
+    let value: unknown;
+    if (field === "lightLevel") {
+      value = extractLightLevel(raw);
+    } else {
+      value = raw[field];
+    }
     if (!isFiniteNumber(value)) {
       errors.push(`${field} must be a finite number.`);
       continue;
@@ -184,6 +211,7 @@ export function validateEnvironmentalData(input: unknown): ValidationResult {
     return { ok: false, errors };
   }
 
+  const lightLevelValue = extractLightLevel(raw);
   const data: EnvironmentalDataContract = {
     deviceId: raw.deviceId as string,
     timestamp: raw.timestamp as string,
@@ -191,7 +219,7 @@ export function validateEnvironmentalData(input: unknown): ValidationResult {
     humidity: raw.humidity as number,
     pressure: raw.pressure as number,
     airQuality: raw.airQuality as number,
-    lightLevel: raw.lightLevel as number,
+    lightLevel: lightLevelValue as number,
     rainfall: raw.rainfall as number,
     windSpeed: raw.windSpeed as number,
     windDirection: raw.windDirection as number,

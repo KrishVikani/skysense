@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { initializeEnvironmentalProvider, tryActivateEsp32Provider } from "@/lib/environmental/provider";
+import { AnalyticsProvider } from "@/lib/environmental/AnalyticsContext";
 
 export function EnvironmentalProvider({ children }: { children: React.ReactNode }) {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -41,11 +42,11 @@ export function EnvironmentalProvider({ children }: { children: React.ReactNode 
       }
       // 4. Quick retry after 1 second to handle edge cases where the initial
       //    check runs before the ESP32 is fully ready. This is not aggressive
-      //    polling — it’s a single one‑second delay after mount.
+      //    polling — it's a single one‑second delay after mount.
       setTimeout(async () => {
         try {
           await tryActivateEsp32Provider();
-          // On success, clear the interval if it’s still running.
+          // On success, clear the interval if it's still running.
           if (intervalRef.current) {
             clearInterval(intervalRef.current);
             intervalRef.current = null;
@@ -66,5 +67,9 @@ export function EnvironmentalProvider({ children }: { children: React.ReactNode 
     };
   }, []);
 
-  return <>{children}</>;
+  return (
+    <AnalyticsProvider>
+      {children}
+    </AnalyticsProvider>
+  );
 }

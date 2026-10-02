@@ -15,9 +15,10 @@ import { ExplanationSection } from "@/components/ai/ExplanationSection";
 import { IntelligenceFooter } from "@/components/ai/IntelligenceFooter";
 import { ForecastSection } from "@/components/forecast/ForecastSection";
 import { RISK_LEVEL_COLOR } from "@/components/ai/severity";
-import { getEnvironmentalIntelligence } from "@/lib/intelligence/service";
 import { fetchDeviceStatus } from "@/lib/devices/service";
 import { ESP32_DEVICE_ID } from "@/lib/devices/contract";
+import { useAnalyticsContext } from "@/lib/environmental/AnalyticsContext";
+import { generateEnvironmentalIntelligence } from "@/lib/intelligence/service";
 import type { AIAnalysis } from "@/lib/intelligence/types";
 
 const WELCOME_MESSAGE =
@@ -31,6 +32,7 @@ type Message = {
 };
 
 export default function AIIntelligenceClient() {
+  const { analytics, loading: analyticsLoading, error: analyticsError, refresh, providerKind } = useAnalyticsContext();
   const [analysis, setAnalysis] = useState<AIAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -178,22 +180,29 @@ export default function AIIntelligenceClient() {
     setLoading(true);
     setError(false);
 
-    getEnvironmentalIntelligence("7d")
-      .then((data) => {
-        if (cancelled) return;
-        setAnalysis(data);
-      })
-      .catch(() => {
+    if (analytics) {
+      try {
+        const data = generateEnvironmentalIntelligence(analytics);
+        if (!cancelled) {
+          setAnalysis(data);
+        }
+      } catch {
         if (!cancelled) setError(true);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+      }
+    } else if (analyticsError) {
+      if (!cancelled) setError(true);
+    }
 
     return () => {
       cancelled = true;
     };
-  }, [reloadKey]);
+  }, [analytics, analyticsError]);
+
+  useEffect(() => {
+    if (!analytics) {
+      refresh("7d");
+    }
+  }, [analytics, refresh]);
 
   if (error && !analysis) {
     return <IntelligenceError onRetry={() => setReloadKey((k) => k + 1)} />;
@@ -220,7 +229,7 @@ export default function AIIntelligenceClient() {
   }
 
   const levelColor = RISK_LEVEL_COLOR[analysis.overallRiskLevel];
-  const isLive = deviceStatus?.connection === "online" && deviceStatus?.dataSource === "esp32";
+  const isLive = providerKind === "esp32" && deviceStatus?.connection === "online";
 
   return (
     <DashboardShell atmosphere="ai">

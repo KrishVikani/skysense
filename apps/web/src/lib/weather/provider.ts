@@ -141,7 +141,7 @@ export class SimulatedWeatherProvider implements WeatherProvider {
       windSpeed: latest.windSpeed,
       windDirectionLabel: compassLabel(latest.windDirection),
       lightLevel: latest.lightLevel,
-      lightLevelRisk: lightLevelRiskOf(latest.lightLevel ?? 0),
+      lightLevelRisk: lightLevelRiskOf(latest.lightLevel),
       airQuality: latest.airQuality,
       aqiCategory: aqiCategoryOf(latest.airQuality),
       pressure: latest.pressure,

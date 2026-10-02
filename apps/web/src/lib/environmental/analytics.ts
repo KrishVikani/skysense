@@ -79,7 +79,18 @@ export function uvRiskOf(uv: number): string {
   return "Extreme";
 }
 
-export const lightLevelRiskOf = uvRiskOf;
+/**
+ * Light level risk classification based on illuminance (lux).
+ * Thresholds are application-specific (from settings: warning=50000, critical=80000).
+ * Not a scientific standard — used for UI risk indication only.
+ */
+export function lightLevelRiskOf(lux: number | null | undefined): string {
+  if (lux === null || lux === undefined) return "No data";
+  if (lux === 0) return "Dark";
+  if (lux < 50000) return "Moderate";
+  if (lux < 80000) return "Bright";
+  return "Intense";
+}
 
 function metricSummary(readings: EnvironmentalReading[], key: MetricKey): MetricSummary {
   const values = readings

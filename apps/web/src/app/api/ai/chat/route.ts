@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
-import { getDeviceHeartbeat, getLatestDeviceReading } from "@/lib/devices/storage";
+import { getDeviceHeartbeat, getLatestDeviceReading, isStorageConfigured } from "@/lib/devices/storage";
 import { deriveConnectionState } from "@/lib/devices/heartbeat";
 import { ESP32_DEVICE_ID } from "@/lib/devices/contract";
 
@@ -207,58 +207,125 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Step 1: Get authoritative device status from server-side heartbeat.
-    // Uses Firebase Admin SDK directly — no relative URL fetch needed.
+    // Step 1: Get authoritative device status.
+    // Try Admin SDK first (server-side), fall back to public API if not configured.
     let deviceStatus: DeviceStatusContext | null = null;
-    try {
-      const heartbeat = await getDeviceHeartbeat(ESP32_DEVICE_ID);
-      if (heartbeat) {
-        const connection = deriveConnectionState(heartbeat.lastSeenAt);
-        deviceStatus = {
-          connection,
-          mode: "live",
-          dataSource: heartbeat.dataSource,
-          lastSeen: heartbeat.lastSeenAt,
-        };
-      }
-    } catch (e) {
-      console.error("Failed to get device heartbeat:", e);
-    }
+    const adminConfigured = isStorageConfigured();
 
-    // Step 2: Retrieve authoritative latest ESP32 telemetry if device is online.
-    // Uses Firestore read directly — no relative URL fetch needed.
-    let analyticsResult: AnalyticsContext | null = null;
-    try {
-      if (deviceStatus && deviceStatus.dataSource === "esp32" && deviceStatus.connection === "online") {
-        const latestReading = await getLatestDeviceReading(ESP32_DEVICE_ID);
-        if (latestReading) {
-          const last = {
-            temperature: latestReading.temperature ?? 0,
-            humidity: latestReading.humidity ?? 0,
-            pressure: latestReading.pressure ?? 0,
-            lightLevel: latestReading.lightLevel ?? 0,
-            rainfall: latestReading.rainfall ?? 0,
-            timestamp: latestReading.timestamp,
-            deviceId: latestReading.deviceId,
-            location: latestReading.location,
-          };
-          analyticsResult = {
-            readings: [last],
-            summary: {
-              temperature: { current: last.temperature },
-              humidity: { current: last.humidity },
-              pressure: { current: last.pressure },
-              lightLevel: { current: last.lightLevel },
-              rainfall: { current: last.rainfall },
-            },
-            dataSource: "esp32",
-            lastUpdated: last.timestamp,
-            location: last.location,
+    if (adminConfigured) {
+      // Use Admin SDK directly (server-side, trusted)
+      try {
+        const heartbeat = await getDeviceHeartbeat(ESP32_DEVICE_ID);
+        if (heartbeat) {
+          const connection = deriveConnectionState(heartbeat.lastSeenAt);
+          deviceStatus = {
+            connection,
+            mode: "live",
+            dataSource: heartbeat.dataSource,
+            lastSeen: heartbeat.lastSeenAt,
           };
         }
+      } catch (e) {
+        console.error("Failed to get device heartbeat via Admin SDK:", e);
       }
-    } catch (e) {
-      console.error("Failed to get latest device reading:", e);
+    }
+
+    // Fallback to public API if Admin SDK not configured or failed
+    if (!deviceStatus) {
+      try {
+        const res = await fetch(`${request.nextUrl.origin}/api/devices/${ESP32_DEVICE_ID}/status`, {
+          cache: "no-store",
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.ok) {
+            deviceStatus = {
+              connection: data.connection,
+              mode: data.mode,
+              dataSource: data.dataSource,
+              lastSeen: data.lastSeen ?? null,
+            };
+          }
+        }
+      } catch (e) {
+        console.error("Failed to get device status via public API:", e);
+      }
+    }
+
+    // Step 2: Retrieve latest ESP32 telemetry if device is online.
+    let analyticsResult: AnalyticsContext | null = null;
+    const isDeviceOnline = deviceStatus?.connection === "online" && deviceStatus?.dataSource === "esp32";
+
+    if (isDeviceOnline) {
+      if (adminConfigured) {
+        // Use Admin SDK directly
+        try {
+          const latestReading = await getLatestDeviceReading(ESP32_DEVICE_ID);
+          if (latestReading) {
+            const last = {
+              temperature: latestReading.temperature ?? 0,
+              humidity: latestReading.humidity ?? 0,
+              pressure: latestReading.pressure ?? 0,
+              lightLevel: latestReading.lightLevel ?? 0,
+              rainfall: latestReading.rainfall ?? 0,
+              timestamp: latestReading.timestamp,
+              deviceId: latestReading.deviceId,
+              location: latestReading.location,
+            };
+            analyticsResult = {
+              readings: [last],
+              summary: {
+                temperature: { current: last.temperature },
+                humidity: { current: last.humidity },
+                pressure: { current: last.pressure },
+                lightLevel: { current: last.lightLevel },
+                rainfall: { current: last.rainfall },
+              },
+              dataSource: "esp32",
+              lastUpdated: last.timestamp,
+              location: last.location,
+            };
+          }
+        } catch (e) {
+          console.error("Failed to get latest device reading via Admin SDK:", e);
+        }
+      }
+
+      // Fallback to public API if Admin SDK not configured or failed
+      if (!analyticsResult) {
+        try {
+          const res = await fetch(`${request.nextUrl.origin}/api/devices/${ESP32_DEVICE_ID}/data/latest`, {
+            cache: "no-store",
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.ok && data.reading) {
+              const r = data.reading;
+              analyticsResult = {
+                readings: [{
+                  temperature: r.temperature ?? 0,
+                  humidity: r.humidity ?? 0,
+                  pressure: r.pressure ?? 0,
+                  lightLevel: r.lightLevel ?? 0,
+                  rainfall: r.rainfall ?? 0,
+                }],
+                summary: {
+                  temperature: { current: r.temperature ?? 0 },
+                  humidity: { current: r.humidity ?? 0 },
+                  pressure: { current: r.pressure ?? 0 },
+                  lightLevel: { current: r.lightLevel ?? 0 },
+                  rainfall: { current: r.rainfall ?? 0 },
+                },
+                dataSource: "esp32",
+                lastUpdated: r.timestamp,
+                location: r.location ?? "Unknown",
+              };
+            }
+          }
+        } catch (e) {
+          console.error("Failed to get latest reading via public API:", e);
+        }
+      }
     }
 
     // Step 3: If device is genuinely offline/unavailable, do NOT fabricate simulated telemetry.

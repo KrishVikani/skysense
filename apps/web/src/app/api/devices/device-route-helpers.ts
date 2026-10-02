@@ -8,6 +8,15 @@ import {
   getDeviceReadingHistory,
   getLatestDeviceReading,
 } from "@/lib/devices/storage";
+import type { StoredDeviceReading } from "@/lib/devices/reading";
+
+/** Normalizes a stored reading to ensure all sensor fields are present (null if missing). */
+function normalizeStoredReading(reading: StoredDeviceReading): StoredDeviceReading {
+  return {
+    ...reading,
+    lightLevel: reading.lightLevel ?? null,
+  };
+}
 
 /**
  * Shared helpers for the /api/devices/[deviceId]/* route handlers.
@@ -51,7 +60,7 @@ export async function latestReadingResponse(
         note: "No readings stored for this device yet. ESP32 is NOT connected; storage is empty until real hardware reports.",
       });
     }
-    return NextResponse.json({ ok: true, deviceId, reading });
+    return NextResponse.json({ ok: true, deviceId, reading: normalizeStoredReading(reading) });
   } catch (error) {
     return NextResponse.json(
       {
@@ -71,12 +80,13 @@ export async function historyResponse(
 ): Promise<NextResponse> {
   try {
     const readings = await getDeviceReadingHistory(deviceId, max);
+    const normalized = readings.map(normalizeStoredReading);
     return NextResponse.json({
       ok: true,
       deviceId,
-      count: readings.length,
-      readings,
-      note: readings.length === 0
+      count: normalized.length,
+      readings: normalized,
+      note: normalized.length === 0
         ? "ESP32 is NOT connected; this list is empty until real hardware reports readings."
         : "ESP32 is NOT connected; this list contains stored readings from previous sessions.",
     });

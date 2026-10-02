@@ -63,12 +63,12 @@ export function AnalyticsProvider({ children, defaultRange = "24h" }: AnalyticsP
       return;
     }
 
-    if (cached.promise) {
+    // Deduplicate in-flight request for the same range
+    if (cached.promise && cached.range === range) {
       try {
         const data = await cached.promise;
-        if (!cached.data || cached.range !== range) {
+        if (!cacheRef.current.data || cacheRef.current.range !== range) {
           setAnalytics(data);
-          cacheRef.current = { data, fetchedAt: now, range, promise: null };
         }
         return;
       } catch {
@@ -79,6 +79,7 @@ export function AnalyticsProvider({ children, defaultRange = "24h" }: AnalyticsP
     setLoading(true);
     setError(false);
 
+    // Create a new promise that updates cache AND state
     const promise = provider.fetchAnalytics(range).then((data) => {
       if (cacheRef.current.promise === promise) {
         cacheRef.current = { data, fetchedAt: Date.now(), range, promise: null };
@@ -90,12 +91,12 @@ export function AnalyticsProvider({ children, defaultRange = "24h" }: AnalyticsP
 
     try {
       const data = await promise;
-      if (!cacheRef.current.data || cacheRef.current.range !== range) {
+      // Always update state when fetch succeeds (cache was updated in .then())
+      if (cacheRef.current.promise === promise) {
         setAnalytics(data);
       }
     } catch (err) {
       setError(true);
-      // Don't re-throw - error state is set, loading will be cleared in finally
     } finally {
       setLoading(false);
     }

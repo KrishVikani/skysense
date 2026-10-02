@@ -189,6 +189,16 @@ export default function AlertsPageClient() {
       setHasLoaded(true);
     }
 
+    if (!analytics) {
+      // Wait for analytics to arrive, then evaluate
+      return;
+    }
+
+    if (!cancelled) {
+      setLoading(false);
+      setRefreshing(false);
+    }
+
     return () => {
       cancelled = true;
     };

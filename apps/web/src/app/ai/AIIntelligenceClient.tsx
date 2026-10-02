@@ -188,9 +188,21 @@ export default function AIIntelligenceClient() {
         }
       } catch {
         if (!cancelled) setError(true);
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     } else if (analyticsError) {
-      if (!cancelled) setError(true);
+      if (!cancelled) {
+        setError(true);
+        setLoading(false);
+      }
+    } else {
+      // Wait for analytics to arrive
+      if (!cancelled) {
+        setLoading(false);
+      }
     }
 
     return () => {

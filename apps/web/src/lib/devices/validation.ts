@@ -42,6 +42,17 @@ function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
+function normalizeNumeric(value: unknown): number | undefined {
+  if (isFiniteNumber(value)) return value;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (trimmed === "") return undefined;
+    const num = Number(trimmed);
+    if (Number.isFinite(num)) return num;
+  }
+  return undefined;
+}
+
 function inRange(value: number, range: { min: number; max: number }): boolean {
   return value >= range.min && value <= range.max;
 }
@@ -53,16 +64,19 @@ function isObject(value: unknown): value is Record<string, unknown> {
 /**
  * Extracts light level value from payload, accepting common firmware aliases.
  * Canonical field is "lightLevel"; aliases "lux" and "light" are supported
- * for firmware compatibility. Returns the first valid finite number found,
- * or undefined if none present.
+ * for firmware compatibility. Accepts finite numbers and finite numeric strings.
+ * Returns the first valid finite number found, or undefined if none present.
  */
 function extractLightLevel(input: Record<string, unknown>): number | undefined {
   const canonical = input.lightLevel;
-  if (isFiniteNumber(canonical)) return canonical;
+  const normalized = normalizeNumeric(canonical);
+  if (normalized !== undefined) return normalized;
   const lux = input.lux;
-  if (isFiniteNumber(lux)) return lux;
+  const luxNorm = normalizeNumeric(lux);
+  if (luxNorm !== undefined) return luxNorm;
   const light = input.light;
-  if (isFiniteNumber(light)) return light;
+  const lightNorm = normalizeNumeric(light);
+  if (lightNorm !== undefined) return lightNorm;
   return undefined;
 }
 
@@ -99,7 +113,8 @@ export function validateDeviceTelemetry(
     if (field === "lightLevel") {
       value = extractLightLevel(input);
     } else {
-      value = input[field];
+      const raw = input[field];
+      value = normalizeNumeric(raw);
     }
     if (value === null || value === undefined) {
       // Absent sensor: allowed, preserved as null, never coerced to zero.
@@ -117,7 +132,8 @@ export function validateDeviceTelemetry(
   }
 
   if (input.battery !== undefined && input.battery !== null) {
-    if (!isFiniteNumber(input.battery) || !inRange(input.battery, { min: 0, max: 100 })) {
+    const batteryNorm = normalizeNumeric(input.battery);
+    if (batteryNorm === undefined || !inRange(batteryNorm, { min: 0, max: 100 })) {
       errors.push("battery must be a number between 0 and 100.");
     }
   }
@@ -132,23 +148,22 @@ export function validateDeviceTelemetry(
   }
 
   const lightLevelValue = extractLightLevel(input);
+  const batteryValue = input.battery !== undefined && input.battery !== null ? normalizeNumeric(input.battery) : undefined;
   const data: ESP32Telemetry = {
     deviceId: input.deviceId as string,
     timestamp: input.timestamp as string,
-    temperature: input.temperature === undefined ? null : (input.temperature as number | null),
-    humidity: input.humidity === undefined ? null : (input.humidity as number | null),
-    pressure: input.pressure === undefined ? null : (input.pressure as number | null),
-    airQuality: input.airQuality === undefined ? null : (input.airQuality as number | null),
-    lightLevel: lightLevelValue === undefined ? null : lightLevelValue,
-    windSpeed: input.windSpeed === undefined ? null : (input.windSpeed as number | null),
-    windDirection: input.windDirection === undefined ? null : (input.windDirection as number | null),
-    rainfall: input.rainfall === undefined ? null : (input.rainfall as number | null),
+    temperature: input.temperature === undefined ? null : normalizeNumeric(input.temperature) ?? null,
+    humidity: input.humidity === undefined ? null : normalizeNumeric(input.humidity) ?? null,
+    pressure: input.pressure === undefined ? null : normalizeNumeric(input.pressure) ?? null,
+    airQuality: input.airQuality === undefined ? null : normalizeNumeric(input.airQuality) ?? null,
+    lightLevel: lightLevelValue ?? null,
+    windSpeed: input.windSpeed === undefined ? null : normalizeNumeric(input.windSpeed) ?? null,
+    windDirection: input.windDirection === undefined ? null : normalizeNumeric(input.windDirection) ?? null,
+    rainfall: input.rainfall === undefined ? null : normalizeNumeric(input.rainfall) ?? null,
     ...(input.firmwareVersion !== undefined && input.firmwareVersion !== null
       ? { firmwareVersion: input.firmwareVersion as string }
       : {}),
-    ...(input.battery !== undefined && input.battery !== null
-      ? { battery: input.battery as number }
-      : {}),
+    ...(batteryValue !== undefined ? { battery: batteryValue! } : {}),
   };
 
   return { ok: true, data };
@@ -184,7 +199,8 @@ export function validateEnvironmentalData(input: unknown): ValidationResult {
     if (field === "lightLevel") {
       value = extractLightLevel(raw);
     } else {
-      value = raw[field];
+      const rawVal = raw[field];
+      value = normalizeNumeric(rawVal);
     }
     if (!isFiniteNumber(value)) {
       errors.push(`${field} must be a finite number.`);
@@ -199,7 +215,8 @@ export function validateEnvironmentalData(input: unknown): ValidationResult {
 
   // Optional fields.
   if (raw.battery !== undefined) {
-    if (!isFiniteNumber(raw.battery) || !inRange(raw.battery, { min: 0, max: 100 })) {
+    const batteryNorm = normalizeNumeric(raw.battery);
+    if (batteryNorm === undefined || !inRange(batteryNorm, { min: 0, max: 100 })) {
       errors.push("battery must be a number between 0 and 100.");
     }
   }
@@ -212,21 +229,22 @@ export function validateEnvironmentalData(input: unknown): ValidationResult {
   }
 
   const lightLevelValue = extractLightLevel(raw);
+  const batteryValue = raw.battery !== undefined ? normalizeNumeric(raw.battery) : undefined;
   const data: EnvironmentalDataContract = {
     deviceId: raw.deviceId as string,
     timestamp: raw.timestamp as string,
-    temperature: raw.temperature as number,
-    humidity: raw.humidity as number,
-    pressure: raw.pressure as number,
-    airQuality: raw.airQuality as number,
-    lightLevel: lightLevelValue as number,
-    rainfall: raw.rainfall as number,
-    windSpeed: raw.windSpeed as number,
-    windDirection: raw.windDirection as number,
+    temperature: normalizeNumeric(raw.temperature)!,
+    humidity: normalizeNumeric(raw.humidity)!,
+    pressure: normalizeNumeric(raw.pressure)!,
+    airQuality: normalizeNumeric(raw.airQuality)!,
+    lightLevel: lightLevelValue!,
+    rainfall: normalizeNumeric(raw.rainfall)!,
+    windSpeed: normalizeNumeric(raw.windSpeed)!,
+    windDirection: normalizeNumeric(raw.windDirection)!,
     dataSource: "esp32",
     connectionMode: "online",
     ...(raw.firmwareVersion !== undefined ? { firmwareVersion: raw.firmwareVersion as string } : {}),
-    ...(raw.battery !== undefined ? { battery: raw.battery as number } : {}),
+    ...(batteryValue !== undefined ? { battery: batteryValue! } : {}),
   };
 
   return { ok: true, data };

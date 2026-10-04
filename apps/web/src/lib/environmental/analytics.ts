@@ -17,6 +17,7 @@ const UNITS: Record<MetricKey, string> = {
   airQuality: "",
   pressure: " hPa",
   rainfall: " mm",
+  lightLevel: " lux",
 };
 
 // |delta| thresholds below which a metric is considered "stable" for a period.
@@ -28,6 +29,7 @@ const TREND_THRESHOLDS: Record<MetricKey, number> = {
   airQuality: 3,
   pressure: 0.5,
   rainfall: 0.3,
+  lightLevel: 500,
 };
 
 const ALL_METRICS: MetricKey[] = [
@@ -38,6 +40,7 @@ const ALL_METRICS: MetricKey[] = [
   "airQuality",
   "pressure",
   "rainfall",
+  "lightLevel",
 ];
 
 const COMPASS = [
@@ -151,6 +154,7 @@ function environmentalScore(readings: EnvironmentalReading[], summary: Record<Me
       humidity,
       airQuality,
       uvIndex: uv,
+      lightLevel: 0,
       windSpeed: 0,
       pressure: 0,
       rainfall: 0,

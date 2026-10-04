@@ -16,11 +16,12 @@ import { SectionHeader } from "@/components/SectionHeader";
 /**
  * Software → hardware mapping for the future SKYSENSE ESP32 station.
  *
- * ONLY the five sensors the real ESP32 hardware supports:
+ * ONLY the sensors the real ESP32 hardware supports:
  *   - temperature
  *   - humidity
  *   - pressure
- *   - uvIndex (light intensity / UV)
+ *   - lightLevel (ambient illuminance, BH1750)
+ *   - uvIndex (UV index, separate sensor)
  *   - rainfall (rain detection)
  *
  * Wind speed, wind direction, air quality, and AQI are NOT measured by the
@@ -30,6 +31,7 @@ const TREND_KEYS: Partial<Record<SensorKey, MetricKey>> = {
   temperature: "temperature",
   humidity: "humidity",
   pressure: "pressure",
+  lightLevel: "lightLevel",
   uvIndex: "uvIndex",
   rainfall: "rainfall",
 };
@@ -69,13 +71,14 @@ function TrendIndicator({ summary }: { summary: MetricSummary | undefined }) {
 
 /**
  * Maps a sensor key to whether it's supported by the real ESP32 hardware.
- * Only the five supported sensors are rendered in the grid.
+ * Only the supported sensors are rendered in the grid.
  */
 function isEsp32SupportedSensor(key: SensorKey): boolean {
   return [
     "temperature",
     "humidity",
     "pressure",
+    "lightLevel",
     "uvIndex",
     "rainfall",
   ].includes(key);
@@ -152,11 +155,12 @@ function SensorCard({
  * Live sensor summary: a clean, readable grid of the station's supported
  * sensors (icon, current value, unit, trend and last-updated context).
  * Shows live ESP32 data when connected, simulated data when not.
- * Only renders the five sensors the real ESP32 hardware supports:
+ * Only renders the sensors the real ESP32 hardware supports:
  *   - temperature
  *   - humidity
  *   - pressure
- *   - uvIndex (light intensity / UV)
+ *   - lightLevel (ambient illuminance in lux, BH1750)
+ *   - uvIndex (UV index)
  *   - rainfall (rain detection)
  */
 export function StationSensorGrid({

@@ -95,7 +95,8 @@ export type MetricKey =
   | "uvIndex"
   | "airQuality"
   | "pressure"
-  | "rainfall";
+  | "rainfall"
+  | "lightLevel";
 
 export interface MetricSummary {
   current: number;

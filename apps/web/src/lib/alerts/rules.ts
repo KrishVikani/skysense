@@ -30,6 +30,7 @@ export const METRIC_LABELS: Record<AlertMetric, string> = {
   airQuality: "Air Quality",
   pressure: "Pressure",
   rainfall: "Rainfall",
+  lightLevel: "Light Level",
   stability: "Atmospheric Stability",
 };
 
@@ -41,6 +42,7 @@ export const METRIC_UNITS: Record<AlertMetric, string> = {
   airQuality: " AQI",
   pressure: " hPa",
   rainfall: " mm",
+  lightLevel: " lux",
   stability: "/100",
 };
 

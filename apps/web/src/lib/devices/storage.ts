@@ -6,6 +6,7 @@ import {
 } from "@skysense/api/admin";
 import type { HeartbeatRecord } from "./heartbeat";
 import type { StoredDeviceReading } from "./reading";
+import { SENSOR_KEYS } from "./sensors";
 
 /**
  * Storage layer for RAW device readings (server-side trusted path).
@@ -39,13 +40,35 @@ function readingsPath(deviceId: string): [string, string, string] {
   return [DEVICE_READINGS_COLLECTION, deviceId, DEVICE_READINGS_SUBCOLLECTION];
 }
 
-/** Strips undefined fields (Firestore rejects undefined; null is preserved). */
+/** Default values for sensor fields that may be missing in historical Firestore documents. */
+const SENSOR_DEFAULTS = {
+  airQuality: null,
+  lightLevel: null,
+  uvIndex: null,
+  windSpeed: null,
+  windDirection: null,
+  rainfall: null,
+} as const;
+
+/** Merges sensor defaults into a stored reading, preserving existing values. */
+function withSensorDefaults(row: StoredDeviceReading): StoredDeviceReading {
+  return { ...SENSOR_DEFAULTS, ...row };
+}
+
+/** Strips undefined fields (Firestore rejects undefined; null is preserved). Ensures all sensor keys are present. */
 function sanitize(reading: StoredDeviceReading): Record<string, unknown> {
-  const record = Object.fromEntries(
+  const base = Object.fromEntries(
     Object.entries({ ...reading }).filter(([, value]) => value !== undefined)
   ) as Record<string, unknown>;
-  delete record.id;
-  return record;
+  delete base.id;
+
+  for (const key of SENSOR_KEYS) {
+    if (!(key in base)) {
+      base[key] = null;
+    }
+  }
+
+  return base;
 }
 
 /**
@@ -73,7 +96,7 @@ export async function getLatestDeviceReading(
     subcollection,
     { orderByField: "timestamp", orderDir: "desc", limitCount: 1 }
   );
-  return rows.length > 0 ? rows[0] : null;
+  return rows.length > 0 ? withSensorDefaults(rows[0]) : null;
 }
 
 /** Returns the most recent `max` stored readings for a device (default 50). */
@@ -82,12 +105,13 @@ export async function getDeviceReadingHistory(
   max = 50
 ): Promise<StoredDeviceReading[]> {
   const [collectionName, docId, subcollection] = readingsPath(deviceId);
-  return getAdminDocumentsInSubcollection<StoredDeviceReading>(
+  const rows = await getAdminDocumentsInSubcollection<StoredDeviceReading>(
     collectionName,
     docId,
     subcollection,
     { orderByField: "timestamp", orderDir: "desc", limitCount: max }
   );
+  return rows.map(withSensorDefaults);
 }
 
 /** Deletes one stored reading (used by tests/admin operations). */

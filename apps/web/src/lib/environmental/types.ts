@@ -65,6 +65,7 @@ export interface EnvironmentalReading {
   windDirection: number;
   uvIndex: number;
   airQuality: number;
+  lightLevel: number;
   pressure: number;
   rainfall: number;
   /** Identifier of the originating device, e.g. "SKY-ESP32-001". */

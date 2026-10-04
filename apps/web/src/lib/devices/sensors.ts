@@ -79,6 +79,16 @@ export const SENSOR_DEFINITIONS: SensorDefinition[] = [
     description: "Ultraviolet index (unitless exposure scale).",
   },
   {
+    key: "lightLevel",
+    label: "Light Level",
+    hardwareComponent: "ESP32_LIGHT_SENSOR",
+    unit: "lux",
+    dataType: "number",
+    validRange: { min: 0, max: 100000 },
+    enabled: true,
+    description: "Ambient illuminance in lux (BH1750 sensor).",
+  },
+  {
     key: "rainfall",
     label: "Rain",
     hardwareComponent: "ESP32_RAIN_SENSOR",

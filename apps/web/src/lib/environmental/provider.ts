@@ -108,6 +108,7 @@ export class Esp32DataSourceProvider implements DataSourceProvider {
       windDirection: reading.windDirection ?? 0,
       uvIndex: reading.uvIndex ?? 0,
       airQuality: reading.airQuality ?? 0,
+      lightLevel: reading.lightLevel ?? 0,
       pressure: reading.pressure ?? 0,
       rainfall: reading.rainfall ?? 0,
       deviceId: reading.deviceId,
@@ -183,6 +184,7 @@ interface StoredDeviceReading {
   humidity: number | null;
   pressure: number | null;
   airQuality: number | null;
+  lightLevel: number | null;
   uvIndex: number | null;
   windSpeed: number | null;
   windDirection: number | null;

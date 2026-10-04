@@ -78,6 +78,11 @@ function readingAt(ms: number): EnvironmentalReading {
     0
   ) % 360;
 
+  // Light level (lux) is zero at night, peaks around solar noon.
+  // Typical outdoor range: 0 (night) to 100000+ (direct sun).
+  const lightCurve = Math.sin(clamp((hour - 6) / 12, 0, 1) * Math.PI);
+  const lightLevel = round(clamp(100000 * lightCurve + (seeded(seed + 3) - 0.5) * 5000, 0, 100000), 0);
+
   // UV is zero at night, peaks around 13:00.
   const uvCurve = Math.sin(clamp((hour - 7) / 12, 0, 1) * Math.PI);
   const uvIndex = round(clamp(9.6 * uvCurve + (seeded(seed + 3) - 0.5) * 0.8, 0, 12), 1);
@@ -114,6 +119,7 @@ function readingAt(ms: number): EnvironmentalReading {
     windDirection,
     uvIndex,
     airQuality,
+    lightLevel,
     pressure,
     rainfall,
   };

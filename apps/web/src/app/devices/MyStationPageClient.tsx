@@ -114,7 +114,7 @@ export default function MyStationPageClient() {
     return () => {
       cancelled = true;
     };
-  }, [reloadKey, settings.units, snapshot]);
+  }, [reloadKey, settings.units]);
 
   // LIVE REFRESH: poll the snapshot at the user-configured interval (bounded in
   // Settings). Paused while the tab is hidden and skipped when a request is in

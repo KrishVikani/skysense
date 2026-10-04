@@ -32,7 +32,7 @@ const nextConfig = {
     }
     return config;
   },
-  output: "standalone",
+  output: process.env.NODE_ENV === "development" ? undefined : "standalone",
 };
 
 export default nextConfig;

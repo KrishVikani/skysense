@@ -77,12 +77,49 @@ function sanitize(reading: StoredDeviceReading): Record<string, unknown> {
  */
 export async function saveDeviceReading(reading: StoredDeviceReading): Promise<string> {
   const [collectionName, docId, subcollection] = readingsPath(reading.deviceId);
-  return createAdminDocumentInSubcollection(
+  const sanitized = sanitize(reading);
+  
+  // Ensure all sensor fields are explicitly present as own properties for Firestore write
+  const toWrite = { ...SENSOR_DEFAULTS, ...sanitized };
+  
+  console.log('[DIAG] saveDeviceReading WRITE:', {
+    deviceId: reading.deviceId,
+    telemetryLightLevel: reading.lightLevel,
+    storedReadingLightLevel: reading.lightLevel,
+    sanitizedKeys: Object.keys(sanitized),
+    sanitizedLightLevel: sanitized.lightLevel,
+    sanitizedRainfall: sanitized.rainfall,
+    toWriteLightLevel: toWrite.lightLevel,
+    collection: collectionName,
+    docId: docId,
+    subcollection: subcollection,
+    firebaseProject: process.env.FIREBASE_PROJECT_ID || 'NOT_SET',
+  });
+  
+  const readingId = await createAdminDocumentInSubcollection(
     collectionName,
     docId,
     subcollection,
-    sanitize(reading)
+    toWrite
   );
+  
+  // Read back the document we just wrote
+  const readBack = await getAdminDocumentsInSubcollection<StoredDeviceReading>(
+    collectionName,
+    docId,
+    subcollection,
+    { orderByField: "timestamp", orderDir: "desc", limitCount: 1 }
+  );
+  
+  console.log('[DIAG] saveDeviceReading READ-BACK:', {
+    readingId,
+    readBackLightLevel: readBack[0]?.lightLevel,
+    readBackRainfall: readBack[0]?.rainfall,
+    readBackTimestamp: readBack[0]?.timestamp,
+    readBackPath: `${collectionName}/${docId}/${subcollection}/${readBack[0]?.id}`,
+  });
+  
+  return readingId;
 }
 
 /** Returns the most recent stored reading for a device, or null when none. */

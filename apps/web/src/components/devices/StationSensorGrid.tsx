@@ -79,7 +79,6 @@ function isEsp32SupportedSensor(key: SensorKey): boolean {
     "humidity",
     "pressure",
     "lightLevel",
-    "uvIndex",
     "rainfall",
   ].includes(key);
 }

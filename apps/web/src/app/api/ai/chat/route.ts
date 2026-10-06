@@ -125,6 +125,7 @@ type AnalyticsContext = {
     pressure: number;
     uvIndex: number;
     rainfall: number;
+    lightLevel: number;
   }[];
   summary: {
     temperature: { current: number };
@@ -132,6 +133,7 @@ type AnalyticsContext = {
     pressure: { current: number };
     uvIndex: { current: number };
     rainfall: { current: number };
+    lightLevel: { current: number };
   };
   dataSource: string;
   lastUpdated: string;
@@ -160,14 +162,14 @@ function buildDataContext(
     parts.push(`  Temperature: ${last.temperature} °C`);
     parts.push(`  Humidity: ${last.humidity}%`);
     parts.push(`  Pressure: ${last.pressure} hPa`);
-    parts.push(`  UV Index: ${last.uvIndex !== null && last.uvIndex !== undefined ? last.uvIndex : "unavailable"}`);
+    parts.push(`  Light Level: ${last.lightLevel !== null && last.lightLevel !== undefined ? last.lightLevel : "unavailable"} lux`);
     parts.push(`  Rainfall: ${last.rainfall !== null && last.rainfall !== undefined ? last.rainfall : "unavailable"} mm`);
 
     parts.push(`Summary:`);
     parts.push(`  Current temperature: ${analyticsResult.summary.temperature.current} °C`);
     parts.push(`  Current humidity: ${analyticsResult.summary.humidity.current}%`);
     parts.push(`  Current pressure: ${analyticsResult.summary.pressure.current} hPa`);
-    parts.push(`  Current UV index: ${analyticsResult.summary.uvIndex.current !== null && analyticsResult.summary.uvIndex.current !== undefined ? analyticsResult.summary.uvIndex.current : "unavailable"}`);
+    parts.push(`  Current light level: ${analyticsResult.summary.lightLevel.current !== null && analyticsResult.summary.lightLevel.current !== undefined ? analyticsResult.summary.lightLevel.current : "unavailable"} lux`);
     parts.push(`  Current rainfall: ${analyticsResult.summary.rainfall.current !== null && analyticsResult.summary.rainfall.current !== undefined ? analyticsResult.summary.rainfall.current : "unavailable"} mm`);
     parts.push(`Location: ${analyticsResult.location}`);
     parts.push(`Data source: ${analyticsResult.dataSource}`);
@@ -238,6 +240,7 @@ export async function POST(request: NextRequest) {
             pressure: latestReading.pressure ?? 0,
             uvIndex: latestReading.uvIndex ?? 0,
             rainfall: latestReading.rainfall ?? 0,
+            lightLevel: latestReading.lightLevel ?? 0,
             timestamp: latestReading.timestamp,
             deviceId: latestReading.deviceId,
             location: latestReading.location,
@@ -250,6 +253,7 @@ export async function POST(request: NextRequest) {
               pressure: { current: last.pressure },
               uvIndex: { current: last.uvIndex },
               rainfall: { current: last.rainfall },
+              lightLevel: { current: last.lightLevel },
             },
             dataSource: "esp32",
             lastUpdated: last.timestamp,

@@ -36,7 +36,7 @@ export const DEVICES_POLL_INTERVAL_MS = 30_000;
 const SENSOR_DIGITS: Partial<Record<SensorKey, number>> = {
   temperature: 1,
   windSpeed: 1,
-  uvIndex: 1,
+  lightLevel: 0,
   pressure: 1,
   rainfall: 1,
 };

@@ -14,17 +14,16 @@ import { SENSOR_ACCENTS, SENSOR_ICONS } from "./severity";
 import { SectionHeader } from "@/components/SectionHeader";
 
 /**
- * Software → hardware mapping for the future SKYSENSE ESP32 station.
+ * Software → hardware mapping for the SKYSENSE ESP32 station.
  *
  * ONLY the sensors the real ESP32 hardware supports:
  *   - temperature
  *   - humidity
  *   - pressure
  *   - lightLevel (ambient illuminance, BH1750)
- *   - uvIndex (UV index, separate sensor)
  *   - rainfall (rain detection)
  *
- * Wind speed, wind direction, air quality, and AQI are NOT measured by the
+ * Wind speed, wind direction, air quality, and UV Index are NOT measured by the
  * actual hardware and are excluded from this grid.
  */
 const TREND_KEYS: Partial<Record<SensorKey, MetricKey>> = {
@@ -32,7 +31,6 @@ const TREND_KEYS: Partial<Record<SensorKey, MetricKey>> = {
   humidity: "humidity",
   pressure: "pressure",
   lightLevel: "lightLevel",
-  uvIndex: "uvIndex",
   rainfall: "rainfall",
 };
 
@@ -159,7 +157,6 @@ function SensorCard({
  *   - humidity
  *   - pressure
  *   - lightLevel (ambient illuminance in lux, BH1750)
- *   - uvIndex (UV index)
  *   - rainfall (rain detection)
  */
 export function StationSensorGrid({

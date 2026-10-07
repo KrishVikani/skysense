@@ -14,9 +14,9 @@ import { InsightsSection } from "@/components/analytics/InsightsSection";
 import { Freshness } from "@/components/analytics/Freshness";
 import { getEnvironmentalAnalytics } from "@/lib/environmental/service";
 import { getEnvironmentalDataProvider } from "@/lib/environmental/provider";
-import { fetchDeviceStatus } from "@/lib/devices/service";
-import { ESP32_DEVICE_ID } from "@/lib/devices/contract";
+import { getDevicesSnapshot } from "@/lib/devices/service";
 import type { AnalyticsResult, MetricKey, TimeRange } from "@/lib/environmental/types";
+import type { DeviceSnapshot } from "@/lib/devices/types";
 
 function AnalyticsSkeleton() {
   return (
@@ -64,12 +64,7 @@ export default function AnalyticsPageClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
-  const [deviceStatus, setDeviceStatus] = useState<{
-    connection: string;
-    mode: string;
-    dataSource: string | undefined;
-    lastSeen: string | null;
-  } | null>(null);
+  const [deviceStatus, setDeviceStatus] = useState<DeviceSnapshot | null>(null);
 
   const dataProvider = getEnvironmentalDataProvider();
   const providerKind = dataProvider.kind;
@@ -114,12 +109,14 @@ export default function AnalyticsPageClient() {
   }, [range]);
 
   // Fetch device status once on mount to determine the authoritative live/simulation state.
+  // Uses getDevicesSnapshot() which includes fallback logic (preserves "live" mode from
+  // previous snapshot when ESP32 was previously connected, matching My Station behavior).
   useEffect(() => {
     let cancelled = false;
-    fetchDeviceStatus(ESP32_DEVICE_ID)
-      .then((status) => {
+    getDevicesSnapshot()
+      .then((snapshot) => {
         if (!cancelled) {
-          setDeviceStatus(status);
+          setDeviceStatus(snapshot);
         }
       })
       .catch(() => {
@@ -132,14 +129,16 @@ export default function AnalyticsPageClient() {
 
   // Auto-refresh device status at a reasonable interval (30s), consistent with the
   // Devices page poll interval. Cleans up on unmount and skips if a request is in flight.
+  // Uses getDevicesSnapshot() which includes fallback logic (preserves "live" mode from
+  // previous snapshot when ESP32 was previously connected, matching My Station behavior).
   useEffect(() => {
     let cancelled = false;
     const interval = setInterval(() => {
       if (typeof document !== "undefined" && document.visibilityState === "hidden")
         return;
-      fetchDeviceStatus(ESP32_DEVICE_ID)
-        .then((status) => {
-          if (!cancelled) setDeviceStatus(status);
+      getDevicesSnapshot()
+        .then((snapshot) => {
+          if (!cancelled) setDeviceStatus(snapshot);
         })
         .catch(() => {
           // Best-effort; keep previous state on failure.
@@ -153,7 +152,7 @@ export default function AnalyticsPageClient() {
 
   // Determine the live/simulation banner state from the authoritative device status.
   const isDeviceOnline = deviceStatus?.connection === "online";
-  const bannerIsLive = isDeviceOnline && deviceStatus?.dataSource === "esp32";
+  const bannerIsLive = isDeviceOnline && deviceStatus?.dataSourceKind === "esp32";
 
   // Re-fetch analytics when the environmental provider switches from mock to ESP32.
   // Depend on the ref so we detect the switch even if the component does not re-render.
@@ -237,7 +236,7 @@ export default function AnalyticsPageClient() {
           </div>
         </motion.div>
 
-        <SummaryCards summary={result.summary} activeMetric={activeMetric} />
+        <SummaryCards summary={result.summary} activeMetric={activeMetric} dataSource={result.dataSource} />
 
         <MetricExplorer
           result={result}
@@ -250,10 +249,12 @@ export default function AnalyticsPageClient() {
             uv={result.summary.uvIndex}
             uvRisk={result.uvRisk}
             rainfall={result.summary.rainfall}
+            light={result.summary.lightLevel}
+            dataSource={result.dataSource}
           />
         )}
 
-        <ScoreSection score={result.score} />
+        <ScoreSection score={result.score} dataSource={result.dataSource} />
 
         <InsightsSection insights={result.insights} />
 
@@ -264,6 +265,7 @@ export default function AnalyticsPageClient() {
           sampleCount={result.readings.length}
           range={range}
           quality={quality}
+          deviceStatus={deviceStatus}
         />
       </div>
     </DashboardShell>

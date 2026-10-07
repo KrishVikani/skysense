@@ -237,5 +237,6 @@ function cloneSettingsPreferences(prefs: AlertThresholdPreferences): AlertThresh
     windSpeed: { ...prefs.windSpeed },
     uvIndex: { ...prefs.uvIndex },
     airQuality: { ...prefs.airQuality },
+    lightLevel: { ...prefs.lightLevel },
   };
 }

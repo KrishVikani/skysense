@@ -15,14 +15,26 @@ function scoreColor(value: number): string {
   return "var(--color-muted)";
 }
 
-const BREAKDOWN_LABELS: Record<string, string> = {
+const BREAKDOWN_LABELS_WEATHER: Record<string, string> = {
   temperature: "Temperature",
   humidity: "Humidity",
   airQuality: "Air Quality",
   uvIndex: "UV Exposure",
 };
 
-export function ScoreSection({ score }: ScoreSectionProps) {
+const BREAKDOWN_LABELS_ESP32: Record<string, string> = {
+  temperature: "Temperature",
+  humidity: "Humidity",
+  airQuality: "Air Quality",
+  lightLevel: "Light Level",
+};
+
+interface ScoreSectionProps {
+  score: EnvironmentalScore;
+  dataSource?: string;
+}
+
+export function ScoreSection({ score, dataSource }: ScoreSectionProps) {
   const ringSize = 140;
   const stroke = 10;
   const radius = (ringSize - stroke) / 2;
@@ -30,9 +42,13 @@ export function ScoreSection({ score }: ScoreSectionProps) {
   const offset = circumference * (1 - score.overall / 100);
   const color = scoreColor(score.overall);
 
-  const breakdownEntries = Object.entries(score.breakdown).filter(
-    ([key]) => key !== "windSpeed" && key !== "pressure" && key !== "rainfall"
-  );
+  const BREAKDOWN_LABELS = dataSource === "esp32" ? BREAKDOWN_LABELS_ESP32 : BREAKDOWN_LABELS_WEATHER;
+
+  const breakdownEntries = Object.entries(score.breakdown).filter(([key]) => {
+    if (key === "windSpeed" || key === "pressure" || key === "rainfall") return false;
+    if (dataSource === "esp32" && key === "uvIndex") return false;
+    return true;
+  });
 
   return (
     <motion.div
@@ -84,7 +100,9 @@ export function ScoreSection({ score }: ScoreSectionProps) {
 
         <div>
           <h2 className="section-title">Environmental Score</h2>
-          <p className="section-subtitle mt-0.5">Aggregated from temperature, humidity, air quality and UV data</p>
+          <p className="section-subtitle mt-0.5">
+            Aggregated from temperature, humidity, air quality and {dataSource === "esp32" ? "light level" : "UV"} data
+          </p>
           <p className="mt-4 text-foreground font-medium">{score.label}</p>
 
           <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">

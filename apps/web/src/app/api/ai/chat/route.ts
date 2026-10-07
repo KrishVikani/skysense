@@ -94,11 +94,13 @@ If a requested value is unavailable, explicitly say it is unavailable.
 
 Distinguish live ESP32 telemetry from simulated or historical data.
 
+The physical ESP32 station has a BH1750 ambient light sensor (Light Level in lux). It does NOT have a UV sensor. UV Index values in the data context for ESP32 will be 0 and should be treated as "not measured by this hardware" — do not describe them as "unavailable" or "missing"; instead note that the station measures Light Level instead of UV Index.
+
 When discussing environmental risk, explain the relevant sensor values and SKYSENSE risk calculations rather than making unsupported claims.
 
 For questions unrelated to SKYSENSE environmental data (such as programming, coding, gaming, or general-purpose knowledge), respond concisely with:
 
-"I'm SKYSENSE AI, a specialized environmental assistant. I can help with weather, environmental conditions, your station readings, alerts, temperature, humidity, pressure, UV, rainfall, and other SKYSENSE-related information. I can't help with unrelated programming or general-purpose requests."
+"I'm SKYSENSE AI, a specialized environmental assistant. I can help with weather, environmental conditions, your station readings, alerts, temperature, humidity, pressure, UV, rainfall, light level, and other SKYSENSE-related information. I can't help with unrelated programming or general-purpose requests."
 
 Do not claim to be a professional meteorologist or medical professional.
 
@@ -109,7 +111,8 @@ Important guidelines:
 - If data source is "simulated", say so explicitly
 - If data source is "esp32", say so explicitly
 - If data is unavailable, say "unavailable" rather than guessing
-- Safety guidance should be cautious and not overstate certainty`;
+- Safety guidance should be cautious and not overstate certainty
+- For ESP32 data, do not refer to UV Index as "unavailable" — the hardware measures Light Level instead`;
 
 type DeviceStatusContext = {
   connection: string;
@@ -238,7 +241,7 @@ export async function POST(request: NextRequest) {
             temperature: latestReading.temperature ?? 0,
             humidity: latestReading.humidity ?? 0,
             pressure: latestReading.pressure ?? 0,
-            uvIndex: latestReading.uvIndex ?? 0,
+            uvIndex: 0,
             rainfall: latestReading.rainfall ?? 0,
             lightLevel: latestReading.lightLevel ?? 0,
             timestamp: latestReading.timestamp,
@@ -251,7 +254,7 @@ export async function POST(request: NextRequest) {
               temperature: { current: last.temperature },
               humidity: { current: last.humidity },
               pressure: { current: last.pressure },
-              uvIndex: { current: last.uvIndex },
+              uvIndex: { current: 0 },
               rainfall: { current: last.rainfall },
               lightLevel: { current: last.lightLevel },
             },

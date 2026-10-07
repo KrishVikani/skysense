@@ -15,17 +15,18 @@ interface TelemetryMetric {
 }
 
 /**
- * The three metrics the My Station telemetry chart lets the user explore.
+ * The four metrics the My Station telemetry chart lets the user explore.
  * History comes exclusively from the existing environmental provider's 24h
  * deterministic series — nothing is fabricated here.
  * Wind is excluded because the real ESP32 hardware does not measure it.
  * Pressure is included as it is a core ESP32 sensor.
- * UV Index and Rain Detection are excluded when no historical values exist.
+ * Light Level (BH1750) is included as it is a core ESP32 sensor.
  */
 const METRICS: TelemetryMetric[] = [
   { key: "temperature", label: "Temperature", color: "var(--color-sun)", formatter: (v) => `${v.toFixed(1)}°C` },
   { key: "humidity", label: "Humidity", color: "var(--color-sky)", formatter: (v) => `${v.toFixed(0)}%` },
   { key: "pressure", label: "Pressure", color: "var(--color-muted)", formatter: (v) => `${v.toFixed(1)} hPa` },
+  { key: "lightLevel", label: "Light Level", color: "var(--color-warning)", formatter: (v) => `${Math.round(v).toLocaleString()} lux` },
 ];
 
 const TREND_COLORS = {
@@ -166,7 +167,7 @@ export function StationTelemetry({ analytics }: { analytics: AnalyticsResult }) 
 
         <p className="mt-3 flex items-start gap-1.5 text-[11px] leading-relaxed text-muted-foreground">
           <Activity className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          History comes from the deterministic simulated data feed · ESP32 hardware is not connected
+          History comes from the deterministic simulated data feed · ESP32 hardware is not connected · Light Level (BH1750) replaces UV Index
         </p>
       </div>
     </div>

@@ -449,14 +449,14 @@ export default function AlertsPageClient() {
           <AlertHistory history={history} />
         </div>
 
-        <AlertSettings settings={settings} onUpdate={updateSetting} onReset={resetSettings} />
+        <AlertSettings settings={settings} onUpdate={updateSetting} onReset={resetSettings} isLive={isLive} />
 
         <div className="space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between px-1 py-2 text-xs text-muted-foreground">
             <div className="flex items-center gap-4 flex-wrap">
               <span className="inline-flex items-center gap-1.5">
                 <Database className="w-3.5 h-3.5" />
-                Data source: <span className="text-foreground font-medium">{ALERTS_DATA_SOURCE}</span>
+                Data source: <span className="text-foreground font-medium">{isLive ? "Live ESP32 telemetry" : ALERTS_DATA_SOURCE}</span>
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5" />

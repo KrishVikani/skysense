@@ -10,6 +10,7 @@ interface AlertSettingsProps {
   settings: AlertSettings;
   onUpdate: (_metric: MetricSettingKey, _patch: Partial<AlertThresholdSetting>) => void;
   onReset: () => void;
+  isLive?: boolean;
 }
 
 const SEVERITY_OPTIONS: AlertSeverity[] = ["info", "warning", "critical"];
@@ -20,7 +21,15 @@ const METRIC_HELP: Record<MetricSettingKey, string> = {
   windSpeed: "Alert when wind speed rises above the configured threshold.",
   uvIndex: "Alert when the UV index rises above the configured threshold.",
   airQuality: "Alert when the air quality index (AQI) rises above the configured threshold.",
+  lightLevel: "Alert when the light level rises above the configured threshold.",
 };
+
+function getVisibleMetrics(isLive: boolean): MetricSettingKey[] {
+  if (isLive) {
+    return ["temperature", "humidity", "windSpeed", "airQuality", "lightLevel"];
+  }
+  return ["temperature", "humidity", "windSpeed", "uvIndex", "airQuality"];
+}
 
 function Toggle({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) {
   return (
@@ -42,7 +51,9 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: () =
   );
 }
 
-export function AlertSettings({ settings, onUpdate, onReset }: AlertSettingsProps) {
+export function AlertSettings({ settings, onUpdate, onReset, isLive = false }: AlertSettingsProps) {
+  const visibleMetrics = getVisibleMetrics(isLive);
+
   return (
     <motion.div
       className="card-premium p-6"
@@ -65,7 +76,7 @@ export function AlertSettings({ settings, onUpdate, onReset }: AlertSettingsProp
       </div>
 
       <div className="mt-5 space-y-3">
-        {METRIC_SETTING_KEYS.map((metric) => {
+        {visibleMetrics.map((metric) => {
           const setting = settings[metric];
           const Icon = METRIC_ICONS[metric];
           const accent = setting.enabled ? "var(--color-accent)" : "var(--color-muted)";

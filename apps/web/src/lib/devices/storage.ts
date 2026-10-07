@@ -44,7 +44,6 @@ function readingsPath(deviceId: string): [string, string, string] {
 const SENSOR_DEFAULTS = {
   airQuality: null,
   lightLevel: null,
-  uvIndex: null,
   windSpeed: null,
   windDirection: null,
   rainfall: null,

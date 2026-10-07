@@ -112,7 +112,7 @@ never imported by browser page code):
   "humidity": 51,
   "pressure": 1008.6,
   "airQuality": 66,
-  "uvIndex": 8.8,
+  "lightLevel": 85000,
   "windSpeed": 10.5,
   "windDirection": 135,
   "rainfall": 0,
@@ -146,7 +146,7 @@ strings are **software placeholders**, not physical part numbers:
 | humidity         | `ESP32_HUMIDITY_SENSOR`       | %       | 0 – 100      |
 | pressure         | `ESP32_PRESSURE_SENSOR`       | hPa     | 800 – 1100   |
 | airQuality       | `ESP32_AIR_QUALITY_SENSOR`    | US AQI  | 0 – 500      |
-| uvIndex          | `ESP32_UV_SENSOR`             | index   | 0 – 20       |
+| lightLevel       | `ESP32_LIGHT_SENSOR`          | lux     | 0 – 100000   |
 | rainfall         | `ESP32_RAIN_SENSOR`           | mm      | 0 – 1000     |
 | windSpeed        | `ESP32_WIND_SPEED_SENSOR`     | km/h    | 0 – 200      |
 | windDirection    | `ESP32_WIND_DIRECTION_SENSOR` | degrees | 0 – 360      |

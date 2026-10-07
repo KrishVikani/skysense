@@ -2,6 +2,7 @@
 
 import { Database, Clock, MapPin, Activity, ShieldCheck } from "lucide-react";
 import type { TimeRange } from "@/lib/environmental/types";
+import type { DeviceSnapshot } from "@/lib/devices/types";
 
 interface FreshnessProps {
   dataSource: string;
@@ -10,6 +11,7 @@ interface FreshnessProps {
   sampleCount: number;
   range: TimeRange;
   quality: string;
+  deviceStatus?: DeviceSnapshot | null;
 }
 
 const EXPECTED_SAMPLES: Record<TimeRange, number> = {
@@ -29,19 +31,19 @@ function relativeTime(iso: string): string {
   return `${days} day${days > 1 ? "s" : ""} ago`;
 }
 
-export function Freshness({ dataSource, location, lastUpdated, sampleCount, range, quality }: FreshnessProps) {
+export function Freshness({ dataSource, location, lastUpdated, sampleCount, range, quality, deviceStatus }: FreshnessProps) {
   const expected = EXPECTED_SAMPLES[range] ?? sampleCount;
   const coverage = Math.min(100, Math.round((sampleCount / Math.max(1, expected)) * 100));
-  const isEsp32 = dataSource === "esp32";
-  const badgeClass = isEsp32 ? "badge badge-success" : "badge badge-warning mt-1";
-  const badgeLabel = isEsp32 ? "ESP32 Telemetry" : "Simulation Mode";
-  const badgeIcon = isEsp32
+  const isLive = deviceStatus?.connection === "online" && deviceStatus?.dataSourceKind === "esp32";
+  const badgeClass = isLive ? "badge badge-success" : "badge badge-warning mt-1";
+  const badgeLabel = isLive ? "ESP32 Telemetry" : "Simulation Mode";
+  const badgeIcon = isLive
     ? <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-success" />
-    : <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-warning" />
-  const statusText = isEsp32
+    : <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-warning" />;
+  const statusText = isLive
     ? "ESP32 hardware connected"
     : "No live hardware connected";
-  const footerText = isEsp32
+  const footerText = isLive
     ? "ESP32 hardware is connected and providing live telemetry."
     : "ESP32 hardware integration is planned but not yet connected.";
 
@@ -71,9 +73,7 @@ export function Freshness({ dataSource, location, lastUpdated, sampleCount, rang
             <Activity className="w-3.5 h-3.5" aria-hidden="true" /> Data quality
           </p>
           <p className="text-sm text-foreground font-medium capitalize">{quality}</p>
-          <p className={isEsp32 ? "text-xs text-muted-foreground" : "text-xs text-muted-foreground"}>
-            {statusText}
-          </p>
+          <p className="text-xs text-muted-foreground">{statusText}</p>
         </div>
 
         <div className="space-y-1.5">

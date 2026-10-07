@@ -3,16 +3,19 @@ import type { ConnectionMode, DataQuality, DataSource, SensorStatus } from "@/li
 export type { ConnectionMode, DataQuality, DataSource, SensorStatus } from "@/lib/environmental/types";
 
 /**
- * The eight conceptual sensors the future SKYSENSE ESP32 station supports.
+ * The seven conceptual sensors the SKYSENSE ESP32 station supports.
  * Field names mirror the existing EnvironmentalReading keys so the software
  * field → hardware mapping stays 1:1 (`rain` is `rainfall` in the data model).
+ *
+ * NOTE: The physical ESP32 has a BH1750 ambient light sensor (lightLevel).
+ * It does NOT have a UV sensor. UV Index is provided by external weather APIs
+ * for simulation/weather paths only, not by ESP32 telemetry.
  */
 export type SensorKey =
   | "temperature"
   | "humidity"
   | "pressure"
   | "airQuality"
-  | "uvIndex"
   | "lightLevel"
   | "rainfall"
   | "windSpeed"

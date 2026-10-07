@@ -122,11 +122,21 @@ export default function HomeScreen() {
               icon={<Wind size={24} color="#718096" />}
             />
             <MetricCard
-              label="UV Index"
-              value={environment.uvIndex?.toString() || "N/A"}
-              trend={environment.uvIndex && environment.uvIndex > 8 ? "up" : "stable"}
-              trendColor={environment.uvIndex && environment.uvIndex > 8 ? "#e53e3e" : "#4299e1"}
-              icon={<Cloud size={24} color="#ed8936" />}
+              label={environment.uvIndex !== undefined ? "UV Index" : "Light Level"}
+              value={environment.uvIndex !== undefined 
+                ? environment.uvIndex?.toString() || "N/A"
+                : environment.lightLevel !== undefined
+                  ? `${Math.round(environment.lightLevel).toLocaleString()} lux`
+                  : "N/A"}
+              trend={environment.uvIndex !== undefined
+                ? (environment.uvIndex && environment.uvIndex > 8 ? "up" : "stable")
+                : (environment.lightLevel && environment.lightLevel > 50000 ? "up" : "stable")}
+              trendColor={environment.uvIndex !== undefined
+                ? (environment.uvIndex && environment.uvIndex > 8 ? "#e53e3e" : "#4299e1")
+                : (environment.lightLevel && environment.lightLevel > 50000 ? "#e53e3e" : "#4299e1")}
+              icon={environment.uvIndex !== undefined 
+                ? <Cloud size={24} color="#ed8936" />
+                : <Sun size={24} color="#ed8936" />}
             />
           </View>
         </View>
@@ -166,7 +176,9 @@ export default function HomeScreen() {
             <View style={styles.recommendationItem}>
               <Shield size={20} color="#d69e2e" />
               <Text style={styles.recommendationText}>
-                UV index high - use sun protection
+                {environment.uvIndex !== undefined
+                  ? (environment.uvIndex && environment.uvIndex > 7 ? "UV index high - use sun protection" : "UV index moderate - sun protection advised")
+                  : (environment.lightLevel && environment.lightLevel > 50000 ? "Light level high - consider shade for sensitive plants" : "Light level moderate - good for most plants")}
               </Text>
             </View>
           </View>
@@ -177,7 +189,9 @@ export default function HomeScreen() {
           <Text style={styles.sectionTitle}>AI Daily Summary</Text>
           <View style={styles.aiCard}>
             <Text style={styles.aiText}>
-              "Warm and moderately humid today. Outdoor activity is most comfortable before 10 AM and after 6 PM. UV exposure is stronger around midday, so consider sun protection."
+              {environment.uvIndex !== undefined
+                ? "Warm and moderately humid today. Outdoor activity is most comfortable before 10 AM and after 6 PM. UV exposure is stronger around midday, so consider sun protection."
+                : "Warm and moderately humid today. Outdoor activity is most comfortable before 10 AM and after 6 PM. Light levels peak around midday, consider shade for sensitive plants."}
             </Text>
           </View>
         </View>

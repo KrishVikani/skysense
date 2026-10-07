@@ -6,7 +6,7 @@ import { MapPin, Thermometer, Droplets, Wind, Sun, Cloud, Leaf, Shield } from "l
 import type { EnvironmentData } from "@skysense/domain-types";
 
 interface LocationEnvironmentProps {
-  environment: EnvironmentData;
+  environment: EnvironmentData & { lightLevel?: number };
   className?: string;
 }
 
@@ -107,7 +107,16 @@ export const LocationEnvironment: FC<LocationEnvironmentProps> = ({
               { label: "Temperature", value: `${environment.temperature}°C`, icon: Thermometer, color: "var(--color-sun)" },
               { label: "Humidity", value: `${environment.humidity}%`, icon: Droplets, color: "var(--color-sky)" },
               { label: "Wind", value: `${environment.windSpeed} km/h`, icon: Wind, color: "var(--color-muted)" },
-              { label: "UV Index", value: environment.uvIndex?.toString() || "—", icon: Sun, color: "var(--color-warning)" },
+              { 
+                label: environment.uvIndex !== undefined ? "UV Index" : "Light Level", 
+                value: environment.uvIndex !== undefined 
+                  ? environment.uvIndex?.toString() || "—" 
+                  : environment.lightLevel !== undefined 
+                    ? `${Math.round(environment.lightLevel).toLocaleString()} lux` 
+                    : "—", 
+                icon: Sun, 
+                color: "var(--color-warning)" 
+              },
             ].map((item, index) => (
               <motion.div
                 key={item.label}
@@ -147,16 +156,33 @@ export const LocationEnvironment: FC<LocationEnvironmentProps> = ({
           <span className="font-medium" style={{ color: aqiInfo.color }}>{environment.aqi.toLowerCase()}</span> air quality 
           with a temperature of <span className="font-medium">{environment.temperature}°C</span> and 
           <span className="font-medium">{environment.humidity}%</span> humidity. 
-          {environment.uvIndex && environment.uvIndex > 7 && (
-            <span className="font-medium" style={{ color: "var(--color-warning)" }}>
-              UV index is high ({environment.uvIndex})
-            </span>
-          )}
-          {environment.uvIndex && environment.uvIndex <= 7 && (
-            <span className="font-medium" style={{ color: "var(--color-success)" }}>
-              UV index is moderate ({environment.uvIndex})
-            </span>
-          )}
+          {environment.uvIndex !== undefined ? (
+            <>
+              {environment.uvIndex > 7 && (
+                <span className="font-medium" style={{ color: "var(--color-warning)" }}>
+                  UV index is high ({environment.uvIndex})
+                </span>
+              )}
+              {environment.uvIndex <= 7 && (
+                <span className="font-medium" style={{ color: "var(--color-success)" }}>
+                  UV index is moderate ({environment.uvIndex})
+                </span>
+              )}
+            </>
+          ) : environment.lightLevel !== undefined ? (
+            <>
+              {environment.lightLevel > 50000 && (
+                <span className="font-medium" style={{ color: "var(--color-warning)" }}>
+                  Light level is high ({Math.round(environment.lightLevel).toLocaleString()} lux)
+                </span>
+              )}
+              {environment.lightLevel <= 50000 && (
+                <span className="font-medium" style={{ color: "var(--color-success)" }}>
+                  Light level is moderate ({Math.round(environment.lightLevel).toLocaleString()} lux)
+                </span>
+              )}
+            </>
+          ) : null}
           Conditions are good for outdoor activities during cooler morning hours.
         </p>
       </motion.div>

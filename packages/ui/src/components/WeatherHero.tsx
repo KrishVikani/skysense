@@ -11,6 +11,7 @@ interface WeatherHeroProps {
   humidity: number;
   windSpeed: number;
   uvIndex?: number;
+  lightLevel?: number;
   aqi: "Good" | "Moderate" | "Poor" | "Hazardous";
   aqiDescription: string;
   className?: string;
@@ -114,6 +115,7 @@ export const WeatherHero: FC<WeatherHeroProps> = ({
   humidity,
   windSpeed,
   uvIndex,
+  lightLevel,
   aqi,
   aqiDescription,
   className = "",
@@ -127,6 +129,8 @@ export const WeatherHero: FC<WeatherHeroProps> = ({
   ];
   if (uvIndex !== undefined) {
     metricChips.push({ icon: <SunIcon className="w-4 h-4" />, value: `UV ${uvIndex}`, label: "Index" });
+  } else if (lightLevel !== undefined) {
+    metricChips.push({ icon: <SunIcon className="w-4 h-4" />, value: `${Math.round(lightLevel).toLocaleString()} lux`, label: "Light Level" });
   }
 
   return (

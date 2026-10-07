@@ -12,7 +12,7 @@ interface MetricExplorerProps {
   onMetricChange: (_metric: MetricKey) => void;
 }
 
-const METRICS: Array<{
+const METRICS_WEATHER: Array<{
   key: MetricKey;
   label: string;
   color: string;
@@ -22,6 +22,19 @@ const METRICS: Array<{
   { key: "humidity", label: "Humidity", color: "var(--color-sky)", formatter: (v) => `${v.toFixed(0)}%` },
   { key: "pressure", label: "Pressure", color: "var(--color-muted)", formatter: (v) => `${v.toFixed(1)} hPa` },
   { key: "uvIndex", label: "UV Index", color: "var(--color-warning)", formatter: (v) => `${v.toFixed(1)}` },
+  { key: "rainfall", label: "Rainfall", color: "var(--color-accent)", formatter: (v) => `${v.toFixed(1)} mm` },
+];
+
+const METRICS_ESP32: Array<{
+  key: MetricKey;
+  label: string;
+  color: string;
+  formatter: (_value: number) => string;
+}> = [
+  { key: "temperature", label: "Temperature", color: "var(--color-sun)", formatter: (v) => `${v.toFixed(1)}°C` },
+  { key: "humidity", label: "Humidity", color: "var(--color-sky)", formatter: (v) => `${v.toFixed(0)}%` },
+  { key: "pressure", label: "Pressure", color: "var(--color-muted)", formatter: (v) => `${v.toFixed(1)} hPa` },
+  { key: "lightLevel", label: "Light Level", color: "var(--color-warning)", formatter: (v) => `${Math.round(v).toLocaleString()} lux` },
   { key: "rainfall", label: "Rainfall", color: "var(--color-accent)", formatter: (v) => `${v.toFixed(1)} mm` },
 ];
 
@@ -35,6 +48,8 @@ const PANEL_ID = "analytics-trend-panel";
 
 export function MetricExplorer({ result, activeMetric, onMetricChange }: MetricExplorerProps) {
   const tabsRef = useRef<HTMLDivElement>(null);
+  const isEsp32 = result.dataSource === "esp32";
+  const METRICS = isEsp32 ? METRICS_ESP32 : METRICS_WEATHER;
   const config = METRICS.find((m) => m.key === activeMetric) ?? METRICS[0];
   const summary = result.summary[config.key];
   const trendColor = TREND_COLORS[summary.trend];

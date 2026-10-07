@@ -8,6 +8,7 @@ import type { MetricKey, MetricSummary } from "@/lib/environmental/types";
 interface SummaryCardsProps {
   summary: Record<MetricKey, MetricSummary>;
   activeMetric?: MetricKey;
+  dataSource?: string;
 }
 
 interface CardConfig {
@@ -17,11 +18,18 @@ interface CardConfig {
   color: string;
 }
 
-const CARDS: CardConfig[] = [
+const CARDS_WEATHER: CardConfig[] = [
   { key: "temperature", label: "Temperature", icon: Thermometer, color: "var(--color-sun)" },
   { key: "humidity", label: "Humidity", icon: Droplets, color: "var(--color-sky)" },
   { key: "pressure", label: "Pressure", icon: Thermometer, color: "var(--color-muted)" },
   { key: "uvIndex", label: "UV Index", icon: Sun, color: "var(--color-warning)" },
+];
+
+const CARDS_ESP32: CardConfig[] = [
+  { key: "temperature", label: "Temperature", icon: Thermometer, color: "var(--color-sun)" },
+  { key: "humidity", label: "Humidity", icon: Droplets, color: "var(--color-sky)" },
+  { key: "pressure", label: "Pressure", icon: Thermometer, color: "var(--color-muted)" },
+  { key: "lightLevel", label: "Light Level", icon: Sun, color: "var(--color-warning)" },
 ];
 
 const TREND_COLORS = {
@@ -52,7 +60,10 @@ function minMaxText(summary: MetricSummary, key: MetricKey): string {
   return `Min ${summary.min.toFixed(digits)}${summary.unit} · Max ${summary.max.toFixed(digits)}${summary.unit}`;
 }
 
-export function SummaryCards({ summary, activeMetric }: SummaryCardsProps) {
+export function SummaryCards({ summary, activeMetric, dataSource }: SummaryCardsProps) {
+  const isEsp32 = dataSource === "esp32";
+  const CARDS = isEsp32 ? CARDS_ESP32 : CARDS_WEATHER;
+
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {CARDS.map((card, index) => {

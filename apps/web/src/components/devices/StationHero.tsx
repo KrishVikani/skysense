@@ -36,7 +36,7 @@ function StatTile({ icon, label, value }: { icon: ReactNode; label: string; valu
  *   - Pressure
  *   - Light Level (ambient illuminance in lux, BH1750)
  *   - Rain Detection
- * Wind, Air Quality, UV Index, and AQI are NOT measured by the actual hardware.
+ * Wind, Air Quality, and UV Index (from weather API) are NOT measured by the actual hardware.
  */
 export function StationHero({
   snapshot,

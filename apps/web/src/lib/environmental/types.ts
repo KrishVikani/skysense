@@ -124,7 +124,7 @@ export interface EnvironmentalScore {
 }
 
 export type InsightTone = "good" | "warning" | "info";
-export type InsightIcon = "temperature" | "humidity" | "wind" | "uv" | "air" | "rain";
+export type InsightIcon = "temperature" | "humidity" | "wind" | "uv" | "air" | "rain" | "light";
 
 export interface Insight {
   id: string;

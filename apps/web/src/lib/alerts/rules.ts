@@ -18,6 +18,7 @@ export const METRIC_SETTING_KEYS = [
   "windSpeed",
   "uvIndex",
   "airQuality",
+  "lightLevel",
 ] as const;
 
 export type MetricSettingKey = (typeof METRIC_SETTING_KEYS)[number];
@@ -58,7 +59,9 @@ export function isSettingMetric(metric: AlertMetric): metric is MetricSettingKey
  * When ESP32 sensor values replace the simulated data, only the DATA SOURCE
  * changes. These rules (which compare against already-normalized metric
  * values) remain valid for: ESP32_TEMPERATURE_SENSOR, ESP32_HUMIDITY_SENSOR,
- * ESP32_WIND_SENSOR, ESP32_UV_SENSOR, ESP32_AIR_QUALITY_SENSOR.
+ * ESP32_WIND_SENSOR, ESP32_LIGHT_SENSOR (BH1750), ESP32_AIR_QUALITY_SENSOR.
+ * Note: The physical ESP32 has a BH1750 light sensor, not a UV sensor.
+ * UV Index alerts apply to simulation/weather paths only.
  */
 export const DEFAULT_RULES: AlertRule[] = [
   {
@@ -158,6 +161,30 @@ export const DEFAULT_RULES: AlertRule[] = [
     enabled: true,
   },
   {
+    id: "lightlevel_warning",
+    metric: "lightLevel",
+    name: "High Light Exposure",
+    threshold: 50000,
+    unit: " lux",
+    direction: "above",
+    severity: "warning",
+    message: "Light level has exceeded the high exposure threshold.",
+    recommendation: "Consider shade for sensitive plants and limit direct exposure.",
+    enabled: true,
+  },
+  {
+    id: "lightlevel_critical",
+    metric: "lightLevel",
+    name: "Extreme Light Exposure",
+    threshold: 80000,
+    unit: " lux",
+    direction: "above",
+    severity: "critical",
+    message: "Light level has reached extreme exposure levels.",
+    recommendation: "Provide shade for sensitive plants; avoid prolonged direct exposure.",
+    enabled: true,
+  },
+  {
     id: "airquality_warning",
     metric: "airQuality",
     name: "Poor Air Quality",
@@ -225,6 +252,7 @@ const DEFAULT_RECOMMENDATIONS: Record<MetricSettingKey, string> = {
   windSpeed: "Check wind exposure before outdoor plans.",
   uvIndex: "Apply sun protection when outdoors.",
   airQuality: "Limit outdoor exertion if conditions persist.",
+  lightLevel: "Consider shade for sensitive plants and limit direct exposure.",
 };
 
 const DEFAULT_DIRECTION = "above" as const;
@@ -251,6 +279,7 @@ export function createDefaultSettings(): AlertSettings {
     windSpeed: make("windSpeed", "Wind Speed", "km/h"),
     uvIndex: make("uvIndex", "UV Index", ""),
     airQuality: make("airQuality", "Air Quality", " AQI"),
+    lightLevel: make("lightLevel", "Light Level", " lux"),
   };
 }
 
@@ -293,6 +322,7 @@ export function createDefaultPreferences(): AlertThresholdPreferences {
     windSpeed: make("windSpeed"),
     uvIndex: make("uvIndex"),
     airQuality: make("airQuality"),
+    lightLevel: make("lightLevel"),
   };
 }
 

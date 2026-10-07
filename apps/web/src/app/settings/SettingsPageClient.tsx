@@ -79,6 +79,7 @@ const ALERT_METRICS: {
   { key: "windSpeed", label: "Wind speed", unit: "km/h", min: 0, max: 200 },
   { key: "uvIndex", label: "UV index", unit: "", min: 0, max: 20 },
   { key: "airQuality", label: "Air quality", unit: "AQI", min: 0, max: 500 },
+  { key: "lightLevel", label: "Light Level", unit: " lux", min: 0, max: 100000 },
 ];
 
 const SECTION_NAV: { id: string; label: string; icon: LucideIcon }[] = [

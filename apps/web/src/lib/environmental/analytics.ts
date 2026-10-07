@@ -126,18 +126,29 @@ function windSummary(readings: EnvironmentalReading[]): WindSummary {
   };
 }
 
-function environmentalScore(readings: EnvironmentalReading[], summary: Record<MetricKey, MetricSummary>): AnalyticsResult["score"] {
+function environmentalScore(readings: EnvironmentalReading[], summary: Record<MetricKey, MetricSummary>, dataSource?: string): AnalyticsResult["score"] {
   const avgTemp = summary.temperature.average;
   const avgHumidity = summary.humidity.average;
   const avgAqi = summary.airQuality.average;
+  const isEsp32 = dataSource === "esp32";
   const maxUv = summary.uvIndex.max;
+  const maxLight = summary.lightLevel.max;
 
   const temperature = Math.round(clampScore(100 - Math.abs(avgTemp - 24) * 3));
   const humidity = Math.round(clampScore(100 - Math.abs(avgHumidity - 55) * 1.2));
   const airQuality = Math.round(clampScore(100 - (avgAqi - 30) * 0.8));
-  const uv = Math.round(clampScore(100 - maxUv * 8));
 
-  const overall = Math.round((temperature + humidity + airQuality + uv) / 4);
+  let uv = 0;
+  let lightLevel = 0;
+  if (isEsp32) {
+    // For ESP32, use light level instead of UV (max 100000 lux, normalize to 0-100)
+    lightLevel = Math.round(clampScore(100 - (maxLight / 1000) * 8));
+  } else {
+    uv = Math.round(clampScore(100 - maxUv * 8));
+  }
+
+  const divisor = isEsp32 ? 4 : 4; // temperature, humidity, airQuality, (uv|light)
+  const overall = Math.round((temperature + humidity + airQuality + (isEsp32 ? lightLevel : uv)) / divisor);
   const label =
     overall >= 80
       ? "Good environmental conditions overall."
@@ -153,8 +164,8 @@ function environmentalScore(readings: EnvironmentalReading[], summary: Record<Me
       temperature,
       humidity,
       airQuality,
-      uvIndex: uv,
-      lightLevel: 0,
+      uvIndex: isEsp32 ? 0 : uv,
+      lightLevel: isEsp32 ? lightLevel : 0,
       windSpeed: 0,
       pressure: 0,
       rainfall: 0,
@@ -167,13 +178,15 @@ function clampScore(value: number): number {
   return Math.min(100, Math.max(0, value));
 }
 
-function buildInsights(readings: EnvironmentalReading[], summary: Record<MetricKey, MetricSummary>, aqiCategory: AQICategory): Insight[] {
+function buildInsights(readings: EnvironmentalReading[], summary: Record<MetricKey, MetricSummary>, aqiCategory: AQICategory, dataSource?: string): Insight[] {
   const insights: Insight[] = [];
   const temp = summary.temperature;
   const humidity = summary.humidity;
   const wind = summary.windSpeed;
   const uv = summary.uvIndex;
+  const light = summary.lightLevel;
   const aqi = summary.airQuality;
+  const isEsp32 = dataSource === "esp32";
 
   // Temperature trend.
   const tempDelta = Math.abs(temp.trendDelta);
@@ -203,19 +216,37 @@ function buildInsights(readings: EnvironmentalReading[], summary: Record<MetricK
         : `Humidity varied by ±${humiditySpread.toFixed(1)}% across the period, most active around rain events.`,
   });
 
-  // UV midday peak.
-  const peakUv = readings.reduce((a, b) => (b.uvIndex > a.uvIndex ? b : a), readings[0]);
-  const peakHour = new Date(peakUv.timestamp).getHours();
-  insights.push({
-    id: "uv",
-    icon: "uv",
-    tone: uv.max >= 8 ? "warning" : "info",
-    title: uv.max >= 8 ? "Strong UV exposure" : "Moderate UV exposure",
-    content:
-      uv.max >= 8
-        ? `UV levels peaked during midday (around ${peakHour}:00) reaching ${uv.max.toFixed(1)}. Sun protection is advised.`
-        : `UV levels were moderate, peaking at ${uv.max.toFixed(1)} around ${peakHour}:00.`,
-  });
+  // UV midday peak (only for non-ESP32 data).
+  if (!isEsp32) {
+    const peakUv = readings.reduce((a, b) => (b.uvIndex > a.uvIndex ? b : a), readings[0]);
+    const peakHour = new Date(peakUv.timestamp).getHours();
+    insights.push({
+      id: "uv",
+      icon: "uv",
+      tone: uv.max >= 8 ? "warning" : "info",
+      title: uv.max >= 8 ? "Strong UV exposure" : "Moderate UV exposure",
+      content:
+        uv.max >= 8
+          ? `UV levels peaked during midday (around ${peakHour}:00) reaching ${uv.max.toFixed(1)}. Sun protection is advised.`
+          : `UV levels were moderate, peaking at ${uv.max.toFixed(1)} around ${peakHour}:00.`,
+    });
+  }
+
+  // Light Level insight (only for ESP32 data).
+  if (isEsp32) {
+    const peakLight = readings.reduce((a, b) => (b.lightLevel > a.lightLevel ? b : a), readings[0]);
+    const peakHour = new Date(peakLight.timestamp).getHours();
+    insights.push({
+      id: "light",
+      icon: "light",
+      tone: light.max > 50000 ? "warning" : "info",
+      title: light.max > 50000 ? "High light exposure" : "Moderate light levels",
+      content:
+        light.max > 50000
+          ? `Light levels peaked during midday (around ${peakHour}:00) reaching ${Math.round(light.max).toLocaleString()} lux. Consider shade for sensitive plants.`
+          : `Light levels were moderate, peaking at ${Math.round(light.max).toLocaleString()} lux around ${peakHour}:00.`,
+    });
+  }
 
   // Wind afternoon comparison.
   const morning = mean(readings.filter((r) => hourOf(r) < 12).map((r) => r.windSpeed));
@@ -282,8 +313,9 @@ export function computeAnalytics(readings: EnvironmentalReading[], range: TimeRa
   const wind = windSummary(readings);
   const aqiCategory = aqiCategoryOf(summary.airQuality.current);
   const uvRisk = uvRiskOf(summary.uvIndex.max);
-  const score = environmentalScore(readings, summary);
-  const insights = buildInsights(readings, summary, aqiCategory);
+  const dataSource = readings[readings.length - 1].dataSource ?? "Unknown";
+  const score = environmentalScore(readings, summary, dataSource);
+  const insights = buildInsights(readings, summary, aqiCategory, dataSource);
 
   return {
     range,
@@ -295,7 +327,7 @@ export function computeAnalytics(readings: EnvironmentalReading[], range: TimeRa
     score,
     insights,
     location: readings[readings.length - 1].location ?? "Unknown",
-    dataSource: readings[readings.length - 1].source ?? "Unknown",
+    dataSource: readings[readings.length - 1].dataSource ?? "Unknown",
     lastUpdated: readings[readings.length - 1].timestamp,
   };
 }

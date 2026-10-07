@@ -118,7 +118,6 @@ export function validateDeviceTelemetry(
     pressure: input.pressure === undefined ? null : (input.pressure as number | null),
     airQuality: input.airQuality === undefined ? null : (input.airQuality as number | null),
     lightLevel: input.lightLevel === undefined ? null : (input.lightLevel as number | null),
-    uvIndex: input.uvIndex === undefined ? null : (input.uvIndex as number | null),
     windSpeed: input.windSpeed === undefined ? null : (input.windSpeed as number | null),
     windDirection: input.windDirection === undefined ? null : (input.windDirection as number | null),
     rainfall: input.rainfall === undefined ? null : (input.rainfall as number | null),

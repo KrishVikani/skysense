@@ -74,6 +74,7 @@ export interface HistoricalDataPoint {
   humidity: number;
   aqi: number;
   uvIndex: number;
+  lightLevel: number;
 }
 
 export interface EnvironmentalScore {
@@ -83,6 +84,7 @@ export interface EnvironmentalScore {
     temperature: number;
     humidity: number;
     uv: number;
+    lightLevel: number;
   };
   grade: "A+" | "A" | "B" | "C" | "D" | "F";
 }

@@ -46,6 +46,12 @@ const metricConfig = {
     unit: "",
     formatter: (v: number) => `${v.toFixed(1)}`,
   },
+  lightLevel: {
+    label: "Light Level (lux)",
+    color: "var(--color-warning)",
+    unit: " lux",
+    formatter: (v: number) => `${Math.round(v).toLocaleString()}`,
+  },
 };
 
 type MetricKey = keyof typeof metricConfig;
@@ -64,7 +70,7 @@ export const Analytics: FC<AnalyticsProps> = ({
 }) => {
   const [activeMetric, setActiveMetric] = useState<MetricKey>("temperature");
 
-  const metrics: MetricKey[] = ["temperature", "humidity", "aqi", "uvIndex"];
+  const metrics: MetricKey[] = ["temperature", "humidity", "aqi", "uvIndex", "lightLevel"];
 
   const isDaily = timeRange !== "24h";
   const filteredData = data.slice(-RANGE_POINTS[timeRange]);

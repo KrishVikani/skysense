@@ -1,5 +1,3 @@
-"use client";
-
 import { motion } from "framer-motion";
 import { Thermometer, Droplets, Wind, Sun, Leaf, CloudRain, Lightbulb } from "lucide-react";
 import type { ComponentType, CSSProperties } from "react";
@@ -16,6 +14,7 @@ const ICONS: Record<InsightIcon, ComponentType<{ className?: string; style?: CSS
   uv: Sun,
   air: Leaf,
   rain: CloudRain,
+  light: Lightbulb,
 };
 
 const TONE_STYLES: Record<InsightTone, { color: string; label: string }> = {

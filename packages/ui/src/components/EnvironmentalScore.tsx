@@ -10,6 +10,7 @@ interface EnvironmentalScoreProps {
   grade?: EnvironmentalScoreType["grade"];
   className?: string;
   size?: "sm" | "md" | "lg";
+  dataSource?: string;
 }
 
 const sizeConfig = {
@@ -26,6 +27,7 @@ export function EnvironmentalScore({
   grade,
   className = "",
   size = "md",
+  dataSource,
 }: EnvironmentalScoreProps) {
   const [animatedScore, setAnimatedScore] = useState(0);
   const [showBreakdown, setShowBreakdown] = useState(false);
@@ -184,7 +186,9 @@ export function EnvironmentalScore({
             <div className="mb-4">
               <p className="text-sm text-muted-foreground text-balance">{scoreSummary(score)}</p>
               <p className="text-xs text-muted-foreground/70 mt-1.5">
-                Index derived from air quality, temperature, humidity and UV.
+                {dataSource === "esp32"
+                  ? "Index derived from air quality, temperature, humidity and light level."
+                  : "Index derived from air quality, temperature, humidity and UV."}
               </p>
             </div>
           )}
@@ -219,7 +223,9 @@ export function EnvironmentalScore({
               <div className="pl-4 border-l border-border">
                 <h3 className="font-medium text-sm text-muted-foreground mb-4">Score Breakdown</h3>
                 <div className="space-y-3">
-                  {Object.entries(breakdown).map(([key, value]) => (
+                  {Object.entries(breakdown)
+                .filter(([key]) => !(dataSource === "esp32" && key === "uvIndex"))
+                .map(([key, value]) => (
                     <motion.div
                       key={key}
                       initial={{ opacity: 0, x: -10 }}

@@ -1,7 +1,7 @@
 import type { SensorDefinition, SensorKey } from "./types";
 
 /**
- * Software → hardware mapping for the future SKYSENSE ESP32 station.
+ * Software → hardware mapping for the SKYSENSE ESP32 station.
  *
  * FUTURE HARDWARE INTEGRATION — SOFTWARE PLACEHOLDERS:
  * The `hardwareComponent` strings below are NOT physical part numbers. They
@@ -13,7 +13,7 @@ import type { SensorDefinition, SensorKey } from "./types";
  *   humidity       → ESP32_HUMIDITY_SENSOR          (%, number)
  *   pressure       → ESP32_PRESSURE_SENSOR          (hPa, number)
  *   airQuality     → ESP32_AIR_QUALITY_SENSOR       (US AQI, number)
- *   uvIndex        → ESP32_UV_SENSOR                (unitless, number)
+ *   lightLevel     → ESP32_LIGHT_SENSOR             (lux, number, BH1750)
  *   rainfall (rain)→ ESP32_RAIN_SENSOR              (mm, number)
  *   windSpeed      → ESP32_WIND_SPEED_SENSOR        (km/h, number)
  *   windDirection  → ESP32_WIND_DIRECTION_SENSOR    (degrees 0–360, number)
@@ -26,6 +26,10 @@ import type { SensorDefinition, SensorKey } from "./types";
  * See docs/HARDWARE_INTEGRATION.md for where that configuration will live.
  * This registry only defines the software field → hardware-component mapping,
  * the display metadata and the validation ranges.
+ *
+ * NOTE: The physical ESP32 station has a BH1750 ambient light sensor (lightLevel).
+ * It does NOT have a UV sensor. UV Index is provided by external weather APIs
+ * for simulation/weather paths only, not by ESP32 telemetry.
  */
 export const SENSOR_DEFINITIONS: SensorDefinition[] = [
   {
@@ -67,16 +71,6 @@ export const SENSOR_DEFINITIONS: SensorDefinition[] = [
     validRange: { min: 0, max: 500 },
     enabled: true,
     description: "US EPA Air Quality Index value.",
-  },
-  {
-    key: "uvIndex",
-    label: "UV Index",
-    hardwareComponent: "ESP32_UV_SENSOR",
-    unit: "index",
-    dataType: "number",
-    validRange: { min: 0, max: 20 },
-    enabled: true,
-    description: "Ultraviolet index (unitless exposure scale).",
   },
   {
     key: "lightLevel",

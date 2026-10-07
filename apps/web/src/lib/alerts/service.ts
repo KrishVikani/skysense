@@ -41,6 +41,7 @@ const INSIGHT_ID_BY_METRIC: Record<MetricSettingKey, string> = {
   windSpeed: "wind",
   uvIndex: "uv",
   airQuality: "air",
+  lightLevel: "light",
 };
 
 function digitsFor(metric: AlertMetric): number {

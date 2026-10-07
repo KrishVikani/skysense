@@ -49,7 +49,6 @@ export interface ESP32Telemetry {
   pressure: number | null;
   airQuality: number | null;
   lightLevel: number | null;
-  uvIndex: number | null;
   windSpeed: number | null;
   windDirection: number | null;
   rainfall: number | null;

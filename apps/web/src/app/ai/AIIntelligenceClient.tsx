@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { AlertTriangle, ArrowRight, BrainCircuit, MapPin, RefreshCw, Sparkles, X, Send } from "lucide-react";
 import { DashboardShell } from "@/components/DashboardShell";
@@ -23,12 +23,54 @@ import type { AIAnalysis } from "@/lib/intelligence/types";
 const WELCOME_MESSAGE =
   "Hi, I'm SKYSENSE AI. Ask me about current temperature, humidity, wind, UV, air quality, active alerts, or your station status.";
 
+const STORAGE_KEY = "skysense.ai.chat.messages";
+
 type Message = {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: number;
 };
+
+function loadMessagesFromStorage(): Message[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    const valid = parsed.every(
+      (m) =>
+        m &&
+        typeof m.id === "string" &&
+        (m.role === "user" || m.role === "assistant") &&
+        typeof m.content === "string" &&
+        typeof m.timestamp === "number"
+    );
+    if (!valid) return [];
+    return parsed;
+  } catch {
+    return [];
+  }
+}
+
+function saveMessagesToStorage(messages: Message[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+  } catch {
+    // Best-effort persistence
+  }
+}
+
+function clearMessagesStorage() {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Best-effort
+  }
+}
 
 export default function AIIntelligenceClient() {
   const [analysis, setAnalysis] = useState<AIAnalysis | null>(null);
@@ -42,31 +84,56 @@ export default function AIIntelligenceClient() {
     lastSeen: string | null;
   } | null>(null);
 
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    const stored = loadMessagesFromStorage();
+    if (stored.length > 0) return stored;
+    return [
+      {
+        id: "welcome",
+        role: "assistant",
+        content: WELCOME_MESSAGE,
+        timestamp: Date.now(),
+      },
+    ];
+  });
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  useEffect(() => {
+    saveMessagesToStorage(messages);
+  }, [messages]);
+
   const [loadingChat, setLoadingChat] = useState(false);
   const [errorChat, setErrorChat] = useState<string | null>(null);
 
-  useEffect(() => {
-    setMessages([
-      {
-        id: "welcome",
-        role: "assistant",
-        content: WELCOME_MESSAGE,
-        timestamp: Date.now(),
-      },
-    ]);
-  }, []);
-
   const handleClearChat = () => {
-    setMessages([
+    const welcomeOnly: Message[] = [
       {
         id: "welcome",
         role: "assistant",
         content: WELCOME_MESSAGE,
         timestamp: Date.now(),
       },
-    ]);
+    ];
+    setMessages(welcomeOnly);
+    clearMessagesStorage();
+  };
+
+  const handleCloseAssistant = () => {
+    const welcomeOnly: Message[] = [
+      {
+        id: "welcome",
+        role: "assistant",
+        content: WELCOME_MESSAGE,
+        timestamp: Date.now(),
+      },
+    ];
+    setMessages(welcomeOnly);
+    clearMessagesStorage();
   };
 
   const sendMessage = async () => {
@@ -251,12 +318,7 @@ export default function AIIntelligenceClient() {
             </button>
             <button
               type="button"
-              onClick={() => setMessages([{
-                id: "welcome",
-                role: "assistant",
-                content: WELCOME_MESSAGE,
-                timestamp: Date.now(),
-              }])}
+              onClick={() => handleCloseAssistant()}
               aria-label="Close AI Assistant"
               className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted/10 hover:text-foreground"
             >
@@ -265,7 +327,7 @@ export default function AIIntelligenceClient() {
           </div>
         </motion.div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-2">
+        <div className="flex-1 min-h-0 overflow-y-auto px-2 pb-2 pt-3">
           {messages.map((msg) => {
             const isUser = msg.role === "user";
             return (
@@ -314,7 +376,7 @@ export default function AIIntelligenceClient() {
             </div>
           )}
 
-          <div className="h-px my-4" />
+          <div ref={messagesEndRef} className="h-px my-4" />
         </div>
 
         <form

@@ -18,11 +18,11 @@ import { deriveConnectionState } from "@/lib/devices/heartbeat";
 import { getDeviceHeartbeat } from "@/lib/devices/storage";
 import { ESP32_DEVICE_ID } from "@/lib/devices/contract";
 import { getEnvironmentalAnalytics } from "@/lib/environmental/service";
-import { formatAge } from "@/lib/devices/quality";
 import { withDisplayUnits } from "@/lib/settings/units";
 import { useSettings } from "@/components/SettingsProvider";
 import type { AnalyticsResult } from "@/lib/environmental/types";
 import type { DeviceSnapshot } from "@/lib/devices/types";
+import { formatTime } from "@/components/alerts/format";
 
 function MyStationSkeleton() {
   return (
@@ -159,11 +159,8 @@ export default function MyStationPageClient() {
 
   const reading = analytics.readings[analytics.readings.length - 1];
   const isLive = snapshot.mode === "live" && snapshot.connection === "online";
-  const lastSeenAgeMs =
-    snapshot.lastSeen !== null
-      ? Date.now() - new Date(snapshot.lastSeen).getTime()
-      : null;
-  const lastSeenLabel = lastSeenAgeMs != null ? formatAge(lastSeenAgeMs) : "never";
+  const updatedTime = reading?.timestamp ? formatTime(reading.timestamp) : "—";
+  const lastSeenTime = snapshot.lastSeen ? formatTime(snapshot.lastSeen) : "—";
 
   return (
     <DashboardShell atmosphere="devices">
@@ -187,12 +184,12 @@ export default function MyStationPageClient() {
             </div>
             <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-muted/5 text-sm text-muted-foreground">
               <Clock className="w-4 h-4 text-accent" />
-              Updated <span className="font-medium text-foreground">{formatAge(snapshot.dataAgeMs)}</span>
+              Updated <span className="font-medium text-foreground">{updatedTime}</span>
             </div>
-            {lastSeenLabel !== "never" && (
+            {snapshot.lastSeen && (
               <div className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-muted/5 text-sm text-muted-foreground">
                 <Clock className="w-4 h-4 text-accent" />
-                Last seen <span className="font-medium text-foreground">{lastSeenLabel}</span>
+                Last seen <span className="font-medium text-foreground">{lastSeenTime}</span>
               </div>
             )}
             <button

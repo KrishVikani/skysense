@@ -7,6 +7,73 @@ import { ESP32_DEVICE_ID } from "@/lib/devices/contract";
 import type { NextRequest } from "next/server";
 
 /**
+ * Determines if a Gemini error represents a daily quota exhaustion
+ * that should NOT be retried (as opposed to transient rate limits).
+ * Checks for quota_id/metric indicating daily free-tier generate content limits.
+ */
+function isDailyQuotaExhausted(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+
+  const err = error as Record<string, unknown>;
+
+  // Check error details for quota information
+  // Gemini errors may include details array with quota info
+  if (err.details && Array.isArray(err.details)) {
+    for (const detail of err.details) {
+      if (detail && typeof detail === "object") {
+        const d = detail as Record<string, unknown>;
+        // Check for quotaId indicating daily free-tier limit
+        if (typeof d.quotaId === "string" && d.quotaId.includes("GenerateRequestsPerDay")) {
+          return true;
+        }
+        // Check for quotaMetric indicating daily free-tier generate content
+        if (typeof d.quotaMetric === "string" && d.quotaMetric.includes("generate_content_free_tier_requests")) {
+          return true;
+        }
+        // Check for quotaValue being the daily limit (20 for free tier)
+        if (typeof d.quotaValue === "number" && d.quotaValue === 20 && typeof d.quotaId === "string" && d.quotaId.includes("PerDay")) {
+          return true;
+        }
+      }
+    }
+  }
+
+  // Check error message for quota indicators
+  if (typeof err.message === "string") {
+    const msg = err.message.toLowerCase();
+    if (msg.includes("quota") && (msg.includes("per day") || msg.includes("daily") || msg.includes("free tier") || msg.includes("daily limit"))) {
+      return true;
+    }
+  }
+
+  // Check response body for quota details
+  if (err.response && typeof err.response === "object") {
+    const resp = err.response as Record<string, unknown>;
+    if (resp.body && typeof resp.body === "object") {
+      const body = resp.body as Record<string, unknown>;
+      if (body.error && typeof body.error === "object") {
+        const errBody = body.error as Record<string, unknown>;
+        if (errBody.details && Array.isArray(errBody.details)) {
+          for (const detail of errBody.details) {
+            if (detail && typeof detail === "object") {
+              const d = detail as Record<string, unknown>;
+              if (typeof d.quotaId === "string" && d.quotaId.includes("GenerateRequestsPerDay")) {
+                return true;
+              }
+              if (typeof d.quotaMetric === "string" && d.quotaMetric.includes("generate_content_free_tier_requests")) {
+                return true;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
  * Safely extracts an HTTP-like status code from a Google GenAI SDK error.
  * The GenAI SDK may surface errors in different shapes depending on the
  * underlying transport (REST vs gRPC) and error type. This helper normalizes
@@ -84,35 +151,46 @@ function extractGeminiStatus(error: unknown): number | null {
 
 const MAX_MESSAGE_LENGTH = 2000;
 
-const AI_SYSTEM_INSTRUCTION = `You are SKYSENSE AI, the specialized environmental intelligence assistant for the user's personal weather station.
+const AI_SYSTEM_INSTRUCTION = `You are SKYSENSE AI, a knowledgeable environmental assistant for a personal weather station.
 
-Use the provided SKYSENSE telemetry and analysis data as the authoritative source for questions about current station conditions.
+=== DATA SOURCE RULES ===
+The context provides two distinct data types. Keep them strictly separated in your reasoning and answers.
 
-Never invent sensor readings.
+1. LIVE ESP32 TELEMETRY (dataSource: "esp32")
+   - Physical station measurements from the BH1750 light sensor and other hardware.
+   - Available: temperature (°C), humidity (%), pressure (hPa), lightLevel (lux), rainfall (mm), airQuality (AQI), windSpeed (km/h), windDirection (degrees).
+   - NOT available on this hardware: UV Index. The ESP32 has no UV sensor.
+   - If the context shows uvIndex: 0 for esp32 data, treat this as "not measured by this station" — never report it as a real UV reading.
 
-If a requested value is unavailable, explicitly say it is unavailable.
+2. WEATHER / SIMULATION DATA (dataSource: "simulation" or weather provider)
+   - Forecast or simulated values. UV Index may exist here.
+   - Never present these as physical ESP32 measurements.
 
-Distinguish live ESP32 telemetry from simulated or historical data.
+=== CORE BEHAVIOR ===
+- Use the supplied telemetry as the authoritative source for current station readings.
+- Never invent or guess a sensor value. If a value is null/undefined/not provided, say it is unavailable.
+- Distinguish measured fact from interpretation. Label interpretations clearly (e.g., "This suggests...", "Based on the current temperature of X...").
+- For ESP32 data: Light Level is measured in lux by the BH1750. Do not derive or fabricate UV Index from lux.
+- Rainfall: the station reports accumulated rainfall in mm. A value of 0 means no rain recorded. Do not confuse amount with a boolean "is it raining" detection unless the context provides a separate rain-detection flag.
+- Use exact current values from context with units. Reference the timestamp when discussing "current" conditions.
+- Answer the user's specific question directly. Do not dump unrelated telemetry.
+- Use conversation history for follow-ups (e.g., "that temperature" refers to the value just discussed).
 
-The physical ESP32 station has a BH1750 ambient light sensor (Light Level in lux). It does NOT have a UV sensor. UV Index values in the data context for ESP32 will be 0 and should be treated as "not measured by this hardware" — do not describe them as "unavailable" or "missing"; instead note that the station measures Light Level instead of UV Index.
+=== RESPONSE STYLE ===
+- Natural, confident, friendly, concise.
+- Easy for a student/exhibition audience to understand.
+- Not robotic, not overly verbose, not repetitive.
+- Simple questions → 1–4 short paragraphs or compact bullet list.
+- Comparison/analysis → concise explanation + key values/reasoning.
+- Current conditions → prioritize requested metric(s), mention only relevant supporting readings.
+- Adapt structure to the question. No forced template.
 
-When discussing environmental risk, explain the relevant sensor values and SKYSENSE risk calculations rather than making unsupported claims.
+=== OFF-TOPIC QUESTIONS ===
+If the user asks something unrelated to weather/environment/SKYSENSE (e.g., programming, recipes, trivia), answer naturally and helpfully. You don't need to force every response back to station data. Just don't pretend to have station data you don't have.
 
-For questions unrelated to SKYSENSE environmental data (such as programming, coding, gaming, or general-purpose knowledge), respond concisely with:
-
-"I'm SKYSENSE AI, a specialized environmental assistant. I can help with weather, environmental conditions, your station readings, alerts, temperature, humidity, pressure, UV, rainfall, light level, and other SKYSENSE-related information. I can't help with unrelated programming or general-purpose requests."
-
-Do not claim to be a professional meteorologist or medical professional.
-
-When discussing dangerous environmental conditions, provide sensible safety guidance without overstating certainty.
-
-Important guidelines:
-- Always ground responses in actual provided data
-- If data source is "simulated", say so explicitly
-- If data source is "esp32", say so explicitly
-- If data is unavailable, say "unavailable" rather than guessing
-- Safety guidance should be cautious and not overstate certainty
-- For ESP32 data, do not refer to UV Index as "unavailable" — the hardware measures Light Level instead`;
+=== SAFETY ===
+- Not a professional meteorologist or medical professional.
+- For dangerous conditions, give sensible guidance without overstating certainty.`;
 
 type DeviceStatusContext = {
   connection: string;
@@ -129,6 +207,9 @@ type AnalyticsContext = {
     uvIndex: number;
     rainfall: number;
     lightLevel: number;
+    airQuality?: number | null;
+    windSpeed?: number | null;
+    windDirection?: number | null;
   }[];
   summary: {
     temperature: { current: number };
@@ -149,36 +230,70 @@ function buildDataContext(
 ): string {
   const parts: string[] = [];
 
+  // Device status section
   if (deviceStatus) {
-    parts.push(`Device connection: ${deviceStatus.connection} (mode: ${deviceStatus.mode})`);
-    parts.push(`Data source kind: ${deviceStatus.dataSource ?? "unknown"}`);
+    parts.push(`[DEVICE STATUS]`);
+    parts.push(`Connection: ${deviceStatus.connection} (mode: ${deviceStatus.mode})`);
+    parts.push(`Data source: ${deviceStatus.dataSource ?? "unknown"}`);
     if (deviceStatus.lastSeen) {
-      parts.push(`Last seen: ${new Date(deviceStatus.lastSeen).toLocaleString()}`);
+      parts.push(`Last telemetry received: ${new Date(deviceStatus.lastSeen).toLocaleString()}`);
     }
   } else {
-    parts.push("Device status: unavailable");
+    parts.push(`[DEVICE STATUS]`);
+    parts.push(`Device status: unavailable`);
   }
 
+  // Live telemetry section - clearly labeled and separated
   if (analyticsResult && analyticsResult.readings.length > 0) {
     const last = analyticsResult.readings[analyticsResult.readings.length - 1];
-    parts.push(`Current readings:`);
-    parts.push(`  Temperature: ${last.temperature} °C`);
-    parts.push(`  Humidity: ${last.humidity}%`);
-    parts.push(`  Pressure: ${last.pressure} hPa`);
-    parts.push(`  Light Level: ${last.lightLevel !== null && last.lightLevel !== undefined ? last.lightLevel : "unavailable"} lux`);
-    parts.push(`  Rainfall: ${last.rainfall !== null && last.rainfall !== undefined ? last.rainfall : "unavailable"} mm`);
+    const isEsp32 = analyticsResult.dataSource === "esp32";
+    const sourceLabel = isEsp32 ? "LIVE ESP32 TELEMETRY" : `SIMULATED/WEATHER DATA (${analyticsResult.dataSource})`;
 
-    parts.push(`Summary:`);
-    parts.push(`  Current temperature: ${analyticsResult.summary.temperature.current} °C`);
-    parts.push(`  Current humidity: ${analyticsResult.summary.humidity.current}%`);
-    parts.push(`  Current pressure: ${analyticsResult.summary.pressure.current} hPa`);
-    parts.push(`  Current light level: ${analyticsResult.summary.lightLevel.current !== null && analyticsResult.summary.lightLevel.current !== undefined ? analyticsResult.summary.lightLevel.current : "unavailable"} lux`);
-    parts.push(`  Current rainfall: ${analyticsResult.summary.rainfall.current !== null && analyticsResult.summary.rainfall.current !== undefined ? analyticsResult.summary.rainfall.current : "unavailable"} mm`);
+    parts.push(`[${sourceLabel}]`);
+    parts.push(`Timestamp: ${analyticsResult.lastUpdated}`);
     parts.push(`Location: ${analyticsResult.location}`);
-    parts.push(`Data source: ${analyticsResult.dataSource}`);
-    parts.push(`Last updated: ${analyticsResult.lastUpdated}`);
+
+    // Core sensors always present for ESP32
+    parts.push(`Temperature: ${last.temperature !== null && last.temperature !== undefined ? last.temperature + " °C" : "unavailable"}`);
+    parts.push(`Humidity: ${last.humidity !== null && last.humidity !== undefined ? last.humidity + "%" : "unavailable"}`);
+    parts.push(`Pressure: ${last.pressure !== null && last.pressure !== undefined ? last.pressure + " hPa" : "unavailable"}`);
+
+    // Light Level (BH1750 on ESP32)
+    parts.push(`Light Level: ${last.lightLevel !== null && last.lightLevel !== undefined ? last.lightLevel + " lux" : "unavailable"}`);
+
+    // Rainfall
+    parts.push(`Rainfall: ${last.rainfall !== null && last.rainfall !== undefined ? last.rainfall + " mm" : "unavailable"}`);
+
+    // Optional sensors
+    if (last.airQuality !== null && last.airQuality !== undefined) {
+      parts.push(`Air Quality: ${last.airQuality} AQI`);
+    }
+    if (last.windSpeed !== null && last.windSpeed !== undefined) {
+      parts.push(`Wind Speed: ${last.windSpeed} km/h`);
+    }
+    if (last.windDirection !== null && last.windDirection !== undefined) {
+      parts.push(`Wind Direction: ${last.windDirection}°`);
+    }
+
+    // UV Index handling - explicit about availability
+    if (isEsp32) {
+      parts.push(`UV Index: not measured by this hardware (station uses BH1750 Light Level instead)`);
+    } else if (last.uvIndex !== null && last.uvIndex !== undefined) {
+      parts.push(`UV Index: ${last.uvIndex}`);
+    } else {
+      parts.push(`UV Index: unavailable`);
+    }
+
+    // Summary block (useful for trends)
+    parts.push(`[SUMMARY - ${sourceLabel}]`);
+    parts.push(`Current temperature: ${analyticsResult.summary.temperature.current !== null && analyticsResult.summary.temperature.current !== undefined ? analyticsResult.summary.temperature.current + " °C" : "unavailable"}`);
+    parts.push(`Current humidity: ${analyticsResult.summary.humidity.current !== null && analyticsResult.summary.humidity.current !== undefined ? analyticsResult.summary.humidity.current + "%" : "unavailable"}`);
+    parts.push(`Current pressure: ${analyticsResult.summary.pressure.current !== null && analyticsResult.summary.pressure.current !== undefined ? analyticsResult.summary.pressure.current + " hPa" : "unavailable"}`);
+    parts.push(`Current light level: ${analyticsResult.summary.lightLevel.current !== null && analyticsResult.summary.lightLevel.current !== undefined ? analyticsResult.summary.lightLevel.current + " lux" : "unavailable"}`);
+    parts.push(`Current rainfall: ${analyticsResult.summary.rainfall.current !== null && analyticsResult.summary.rainfall.current !== undefined ? analyticsResult.summary.rainfall.current + " mm" : "unavailable"}`);
   } else {
-    parts.push("Current environmental data: unavailable");
+    parts.push(`[CURRENT ENVIRONMENTAL DATA]`);
+    parts.push(`No live telemetry available. Device may be offline or not yet connected.`);
   }
 
   return parts.join("\n");
@@ -309,116 +424,120 @@ export async function POST(request: NextRequest) {
       .filter((line) => line.trim().length > 0)
       .join("\n");
 
-    let responseText: string;
-    let geminiStatusCode: number | null = null;
+  let responseText: string;
+  let geminiStatusCode: number | null = null;
 
-    // Retry configuration for transient failures
-    const maxRetries = 3;
-    const baseDelayMs = 1000;
+  // Retry configuration for transient failures
+  const maxRetries = 3;
+  const baseDelayMs = 1000;
 
-    async function callGeminiWithRetry(): Promise<string> {
-      let lastError: unknown;
+  async function callGeminiWithRetry(): Promise<string> {
+    let lastError: unknown;
 
-      for (let attempt = 0; attempt < maxRetries; attempt++) {
-        try {
-          const response = await ai.models.generateContent({
-            model: "gemini-3.5-flash",
-            contents: userPrompt,
-            config: {
-              systemInstruction: AI_SYSTEM_INSTRUCTION,
-              temperature: 0.4,
-              maxOutputTokens: 1024,
-            },
-          });
-          return response.text ?? "";
-        } catch (geminiError) {
-          lastError = geminiError;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        const response = await ai.models.generateContent({
+          model: "gemini-3.1-flash-lite",
+          contents: userPrompt,
+          config: {
+            systemInstruction: AI_SYSTEM_INSTRUCTION,
+            temperature: 0.4,
+            maxOutputTokens: 1024,
+          },
+        });
+        return response.text ?? "";
+      } catch (geminiError) {
+        lastError = geminiError;
 
-          // Use robust status extraction helper
-          const errorStatus = extractGeminiStatus(geminiError);
-          geminiStatusCode = errorStatus ?? 500;
+        // Use robust status extraction helper
+        const errorStatus = extractGeminiStatus(geminiError);
+        geminiStatusCode = errorStatus ?? 500;
 
-          // Check if this is a retryable error
-          const isRetryable =
-            geminiStatusCode === 429 ||
+        // Check if this is a daily quota exhaustion (non-retryable)
+        const isDailyQuota = isDailyQuotaExhausted(geminiError);
+
+        // Check if this is a retryable error
+        const isRetryable =
+          !isDailyQuota &&
+          (geminiStatusCode === 429 ||
             geminiStatusCode === 503 ||
-            (geminiStatusCode !== null && geminiStatusCode >= 500 && geminiStatusCode < 600);
+            (geminiStatusCode !== null && geminiStatusCode >= 500 && geminiStatusCode < 600));
 
-          // Don't retry on last attempt
-          if (!isRetryable || attempt === maxRetries - 1) {
-            break;
-          }
-
-          // Exponential backoff: 1s, 2s
-          const delayMs = baseDelayMs * Math.pow(2, attempt);
-          console.log(`Gemini API transient error (${geminiStatusCode}), retrying in ${delayMs}ms (attempt ${attempt + 1}/${maxRetries})`);
-          await new Promise((resolve) => setTimeout(resolve, delayMs));
+        // Don't retry on last attempt
+        if (!isRetryable || attempt === maxRetries - 1) {
+          break;
         }
-      }
 
-      // If we get here, all retries exhausted or non-retryable error
-      throw lastError;
+        // Exponential backoff: 1s, 2s
+        const delayMs = baseDelayMs * Math.pow(2, attempt);
+        console.log(`Gemini API transient error (${geminiStatusCode}), retrying in ${delayMs}ms (attempt ${attempt + 1}/${maxRetries})`);
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
     }
 
-    try {
-      responseText = await callGeminiWithRetry();
-    } catch (geminiError) {
-      // Use robust status extraction helper for final error handling
-      geminiStatusCode = extractGeminiStatus(geminiError) ?? 500;
-
-      console.error("Gemini API error:", (geminiError as Error | undefined)?.message);
-
-      // Handle specific Gemini API error codes
-      if (geminiStatusCode === 429) {
-        return NextResponse.json(
-          {
-            error: "GEMINI_QUOTA_EXCEEDED",
-            message:
-              "SKYSENSE AI is temporarily unavailable because the Gemini API quota has been reached. Please try again after the quota resets.",
-          },
-          { status: 429 }
-        );
-      }
-
-      if (geminiStatusCode === 401 || geminiStatusCode === 403) {
-        return NextResponse.json(
-          {
-            error: "GEMINI_CONFIGURATION_ERROR",
-            message:
-              "SKYSENSE AI is currently misconfigured. Please contact support.",
-          },
-          { status: 401 }
-        );
-      }
-
-      if (geminiStatusCode && geminiStatusCode >= 500) {
-        return NextResponse.json(
-          {
-            error: "GEMINI_SERVICE_UNAVAILABLE",
-            message:
-              "SKYSENSE AI service is temporarily unavailable. Please try again later.",
-          },
-          { status: 503 }
-        );
-      }
-
-      // Generic fallback for unexpected errors
-      return NextResponse.json(
-        { error: "AI service error. Please try again later." },
-        { status: 500 }
-      );
-    }
-
-    if (!responseText) {
-      return NextResponse.json(
-        { error: "AI returned an empty response. Please try again." },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ response: responseText });
-  } catch (error) {
-    console.error("AI chat error:", error);
-    return NextResponse.json({ error: "AI service error. Please try again." }, { status: 500 });
+    // If we get here, all retries exhausted or non-retryable error
+    throw lastError;
   }
+
+  try {
+    responseText = await callGeminiWithRetry();
+  } catch (geminiError) {
+    // Use robust status extraction helper for final error handling
+    geminiStatusCode = extractGeminiStatus(geminiError) ?? 500;
+
+    console.error("Gemini API error:", (geminiError as Error | undefined)?.message);
+
+    // Handle specific Gemini API error codes
+    if (geminiStatusCode === 429) {
+      return NextResponse.json(
+        {
+          error: "GEMINI_QUOTA_EXCEEDED",
+          message:
+            "SKYSENSE AI is temporarily unavailable because the Gemini API quota has been reached. Please try again after the quota resets.",
+        },
+        { status: 429 }
+      );
+    }
+
+    if (geminiStatusCode === 401 || geminiStatusCode === 403) {
+      return NextResponse.json(
+        {
+          error: "GEMINI_CONFIGURATION_ERROR",
+          message:
+            "SKYSENSE AI is currently misconfigured. Please contact support.",
+        },
+        { status: 401 }
+      );
+    }
+
+    if (geminiStatusCode && geminiStatusCode >= 500) {
+      return NextResponse.json(
+        {
+          error: "GEMINI_SERVICE_UNAVAILABLE",
+          message:
+            "SKYSENSE AI service is temporarily unavailable. Please try again later.",
+        },
+        { status: 503 }
+      );
+    }
+
+    // Generic fallback for unexpected errors
+    return NextResponse.json(
+      { error: "AI service error. Please try again later." },
+      { status: 500 }
+    );
+  }
+
+  if (!responseText) {
+    return NextResponse.json(
+      { error: "AI returned an empty response. Please try again." },
+      { status: 500 }
+    );
+  }
+
+  return NextResponse.json({ response: responseText });
+} catch (error) {
+  console.error("AI chat error:", error);
+  return NextResponse.json({ error: "AI service error. Please try again." }, { status: 500 });
+}
 }
